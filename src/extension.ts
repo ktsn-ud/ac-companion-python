@@ -7,7 +7,6 @@ import {
   TestCase,
   CompetitiveCompanionsResponse,
 } from "./types/CompetitiveCompanions";
-import { Test } from "mocha";
 
 let server: http.Server | null = null;
 
@@ -55,8 +54,22 @@ async function startServer() {
           return;
         }
 
+        const contestId = getContestIdFromUrl(url);
+        const taskId = getTaskIdFromUrl(url);
+        if (!contestId || !taskId) {
+          res.writeHead(400);
+          res.end("Could not extract contest or task ID from URL.");
+          return;
+        }
+
+        // 保存ディレクトリの作成
         const dirRelative = config.get<string>("testCaseSaveDirName") || "test";
-        const saveDir = path.join(workspaceFolders.uri.fsPath, dirRelative);
+        const saveDir = path.join(
+          workspaceFolders.uri.fsPath,
+          contestId,
+          taskId,
+          dirRelative
+        );
         fs.mkdirSync(saveDir, { recursive: true });
 
         // テストケースの保存
@@ -101,7 +114,9 @@ async function startServer() {
 }
 
 function stopServer() {
-  if (!server) return;
+  if (!server) {
+    return;
+  }
   server.close();
   server = null;
   vscode.window.showInformationMessage("AC Companion Python server stopped.");
@@ -114,4 +129,22 @@ function readBody(req: http.IncomingMessage): Promise<Buffer> {
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
+}
+
+function getContestIdFromUrl(url: URL): string | null {
+  const parts = url.pathname.split("/");
+  const index = parts.indexOf("contests");
+  if (index !== -1 && parts.length > index + 1) {
+    return parts[index + 1];
+  }
+  return null;
+}
+
+function getTaskIdFromUrl(url: URL): string | null {
+  const parts = url.pathname.split("/");
+  const index = parts.indexOf("tasks");
+  if (index !== -1 && parts.length > index + 1) {
+    return parts[index + 1];
+  }
+  return null;
 }
