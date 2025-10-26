@@ -63,9 +63,11 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.version }}
           awk -v ver="$VERSION" '
-            BEGIN{found=0}
+            BEGIN{found=0; out=0}
             /^## Release Notes/ {found=1; next}
-            found && match($0, "^### "ver"$") {print; getline; while($0 ~ /^-/) {print; getline} exit}
+            found && match($0, "^### "ver"$") {out=1; next}
+            out && match($0, "^### ") {exit}
+            out {print}
           ' README.md > release_notes.txt
           if [ ! -s release_notes.txt ]; then
             echo "No release notes for v$VERSION found. Skipping release." >&2
