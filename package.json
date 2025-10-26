@@ -16,10 +16,6 @@
   "contributes": {
     "commands": [
       {
-        "command": "ac-companion-python.helloWorld",
-        "title": "Hello World"
-      },
-      {
         "command": "ac-companion-python.start",
         "title": "AC Companion Python: Start"
       },
