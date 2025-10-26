@@ -58,11 +58,27 @@ jobs:
           name: ${{ steps.find_vsix.outputs.vsix_file }}
           path: ${{ steps.find_vsix.outputs.vsix_file }}
 
+      - name: Extract release notes from README
+        id: extract_notes
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          awk -v ver="$VERSION" '
+            BEGIN{found=0}
+            /^## Release Notes/ {found=1; next}
+            found && match($0, "^### "ver"$") {print; getline; while($0 ~ /^-/) {print; getline} exit}
+          ' README.md > release_notes.txt
+          if [ ! -s release_notes.txt ]; then
+            echo "No release notes for v$VERSION found. Skipping release." >&2
+            echo "skip_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_release=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create GitHub release
-        if: ${{ steps.tag_check.outputs.tag_exists == 'false' }}
+        if: ${{ steps.tag_check.outputs.tag_exists == 'false' && steps.extract_notes.outputs.skip_release == 'false' }}
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ steps.version.outputs.version }}
           name: v${{ steps.version.outputs.version }}
-          body: "Automated release for v${{ steps.version.outputs.version }}"
+          body_path: release_notes.txt
           files: ${{ steps.find_vsix.outputs.vsix_file }}
