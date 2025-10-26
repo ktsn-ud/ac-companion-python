@@ -63,7 +63,8 @@ async function startServer() {
         }
 
         // 保存ディレクトリの作成
-        const dirRelative = config.get<string>("testCaseSaveDirName") || "test";
+        const dirRelative =
+          config.get<string>("testCaseSaveDirName") || "tests";
         const saveDir = path.join(
           workspaceFolders.uri.fsPath,
           contestId,
