@@ -1,6 +1,6 @@
 {
   "name": "ac-companion-python",
-  "displayName": "ac-companion-python",
+  "displayName": "AC Companion Python",
   "description": "",
   "version": "0.0.1",
   "engines": {
@@ -9,15 +9,36 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "ac-companion-python.helloWorld",
-        "title": "Hello World"
+        "command": "ac-companion-python.start",
+        "title": "AC Companion Python: Start"
+      },
+      {
+        "command": "ac-companion-python.stop",
+        "title": "AC Companion Python: Stop"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "AC Companion Python",
+      "properties": {
+        "ac-companion-python.port": {
+          "type": "number",
+          "default": 10043,
+          "description": "Competitive Companion が post するポート番号"
+        },
+        "ac-companion-python.testCaseSaveDirName": {
+          "type": "string",
+          "default": "tests",
+          "description": "テストケースを保存するディレクトリ名"
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "pnpm run compile",
