@@ -2,6 +2,7 @@
   "name": "ac-companion-python",
   "displayName": "AC Companion Python",
   "description": "",
+  "publisher": "ktsn-ud",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.105.0"
