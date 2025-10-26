@@ -1,0 +1,84 @@
+name: vsix-release
+permissions:
+  contents: write
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build extension
+        run: pnpm dlx @vscode/vsce package
+
+      - name: Read version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Find VSIX file
+        id: find_vsix
+        run: |
+          VSIX_FILE=$(ls *.vsix | head -n 1)
+          echo "vsix_file=$VSIX_FILE" >> $GITHUB_OUTPUT
+
+      - name: Check if tag exists
+        id: tag_check
+        run: |
+          git fetch --tags --quiet
+          VERSION=${{ steps.version.outputs.version }}
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists; skipping release."
+            echo "tag_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload VSIX artifact
+        if: ${{ steps.tag_check.outputs.tag_exists == 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.find_vsix.outputs.vsix_file }}
+          path: ${{ steps.find_vsix.outputs.vsix_file }}
+
+      - name: Extract release notes from README
+        id: extract_notes
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          awk -v ver="$VERSION" '
+            BEGIN{found=0}
+            /^## Release Notes/ {found=1; next}
+            found && match($0, "^### "ver"$") {print; getline; while($0 ~ /^-/) {print; getline} exit}
+          ' README.md > release_notes.txt
+          if [ ! -s release_notes.txt ]; then
+            echo "No release notes for v$VERSION found. Skipping release." >&2
+            echo "skip_release=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip_release=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub release
+        if: ${{ steps.tag_check.outputs.tag_exists == 'false' && steps.extract_notes.outputs.skip_release == 'false' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          body_path: release_notes.txt
+          files: ${{ steps.find_vsix.outputs.vsix_file }}

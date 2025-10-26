@@ -2,7 +2,13 @@
   "name": "ac-companion-python",
   "displayName": "AC Companion Python",
   "description": "",
+  "publisher": "ktsn-ud",
   "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ktsn-ud/ac-companion-python.git"
+  },
   "engines": {
     "vscode": "^1.105.0"
   },
