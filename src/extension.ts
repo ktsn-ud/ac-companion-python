@@ -105,8 +105,15 @@ async function startServer() {
   });
 
   await new Promise<void>((resolve, reject) => {
-    server!.listen(port, "127.0.0.1", () => resolve());
-    server!.on("error", reject);
+    const onError = (err: Error) => {
+      server?.off("error", onError);
+      reject(err);
+    };
+    server!.on("error", onError);
+    server!.listen(port, "127.0.0.1", () => {
+      server?.off("error", onError);
+      resolve();
+    });
   });
 
   vscode.window.showInformationMessage(
