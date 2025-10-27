@@ -8,6 +8,9 @@ import {
   CompetitiveCompanionsResponse,
 } from "./types/CompetitiveCompanions";
 
+const TEMPLATE_FILE_DEFAULT = ".config/templates/main.py";
+const PLACEHOLDER = "pass";
+
 let server: http.Server | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -92,6 +95,36 @@ async function startServer() {
           `Saved ${tests.length} test case(s) to ${saveDir}.`
         );
 
+        // テンプレートファイルのコピー
+        const templateRelativePath =
+          config.get<string>("templateFilePath") || TEMPLATE_FILE_DEFAULT;
+        const templatePath = path.join(
+          workspaceFolders.uri.fsPath,
+          templateRelativePath
+        );
+
+        let destPath: string | null = null;
+        if (fs.existsSync(templatePath)) {
+          destPath = path.join(
+            workspaceFolders.uri.fsPath,
+            contestId,
+            taskId,
+            "main.py"
+          );
+          fs.mkdirSync(path.dirname(destPath), { recursive: true });
+          fs.copyFileSync(templatePath, destPath);
+        } else {
+          vscode.window.showWarningMessage(
+            `Template file not found at ${templatePath}. Skipping template copy.`
+          );
+        }
+
+        // コピーされたファイルをエディタで開く
+        if (destPath) {
+          const codeUri = vscode.Uri.file(destPath);
+          openCodeFileAndSetCursor(codeUri);
+        }
+
         res.writeHead(200);
         res.end("ok");
         return;
@@ -155,4 +188,38 @@ function getTaskIdFromUrl(url: URL): string | null {
     return parts[index + 1];
   }
   return null;
+}
+
+async function openCodeFileAndSetCursor(fileUrl: vscode.Uri) {
+  try {
+    const document = await vscode.workspace.openTextDocument(fileUrl);
+
+    // プレースホルダーを探して選択状態にする
+    const text = document.getText();
+    const index = text.indexOf(PLACEHOLDER);
+
+    // エディタで開く
+    const editor = await vscode.window.showTextDocument(document, {
+      preview: false,
+    });
+
+    if (index === -1) {
+      return;
+    }
+
+    const start = document.positionAt(index);
+    const end = document.positionAt(index + PLACEHOLDER.length);
+
+    editor.selection = new vscode.Selection(start, end);
+    editor.revealRange(
+      new vscode.Range(start, end),
+      vscode.TextEditorRevealType.InCenter
+    );
+  } catch (err) {
+    vscode.window.showErrorMessage(
+      `Failed to open code file: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+  }
 }
