@@ -8,6 +8,8 @@ import {
   CompetitiveCompanionsResponse,
 } from "./types/CompetitiveCompanions";
 
+const TEMPLATE_FILE = ".config/templates/main.py";
+
 let server: http.Server | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
@@ -91,6 +93,21 @@ async function startServer() {
         vscode.window.showInformationMessage(
           `Saved ${tests.length} test case(s) to ${saveDir}.`
         );
+
+        // テンプレートファイルのコピー
+        const templatePath = path.join(
+          workspaceFolders.uri.fsPath,
+          TEMPLATE_FILE
+        );
+        if (fs.existsSync(templatePath)) {
+          const destPath = path.join(
+            workspaceFolders.uri.fsPath,
+            contestId,
+            taskId,
+            "main.py"
+          );
+          fs.copyFileSync(templatePath, destPath);
+        }
 
         res.writeHead(200);
         res.end("ok");
