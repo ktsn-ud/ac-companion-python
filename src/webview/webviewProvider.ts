@@ -4,6 +4,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
   constructor(private extensionUri: vscode.Uri) {}
 
   public resolveWebviewView(webviewView: vscode.WebviewView) {
+    webviewView.webview.options = {
+      enableScripts: true,
+    };
     webviewView.webview.html = `
       <!DOCTYPE html>
       <html lang="ja">

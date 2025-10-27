@@ -8,7 +8,7 @@ import {
   CompetitiveCompanionsResponse,
 } from "./types/CompetitiveCompanions";
 
-import { WebviewProvider } from "./webviewProvider";
+import { WebviewProvider } from "./webview/webviewProvider";
 
 const TEMPLATE_FILE_DEFAULT = ".config/templates/main.py";
 const PLACEHOLDER = "pass";
