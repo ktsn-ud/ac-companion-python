@@ -110,6 +110,7 @@ async function startServer() {
             taskId,
             "main.py"
           );
+          fs.mkdirSync(path.dirname(destPath), { recursive: true });
           fs.copyFileSync(templatePath, destPath);
         } else {
           vscode.window.showWarningMessage(
