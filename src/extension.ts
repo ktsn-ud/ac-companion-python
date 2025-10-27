@@ -109,6 +109,10 @@ async function startServer() {
             "main.py"
           );
           fs.copyFileSync(templatePath, destPath);
+        } else {
+          vscode.window.showWarningMessage(
+            `Template file not found at ${templatePath}. Skipping template copy.`
+          );
         }
 
         res.writeHead(200);
