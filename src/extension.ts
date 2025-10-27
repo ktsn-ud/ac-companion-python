@@ -101,8 +101,10 @@ async function startServer() {
           workspaceFolders.uri.fsPath,
           templateRelativePath
         );
+
+        let destPath: string | null = null;
         if (fs.existsSync(templatePath)) {
-          const destPath = path.join(
+          destPath = path.join(
             workspaceFolders.uri.fsPath,
             contestId,
             taskId,
@@ -113,6 +115,12 @@ async function startServer() {
           vscode.window.showWarningMessage(
             `Template file not found at ${templatePath}. Skipping template copy.`
           );
+        }
+
+        // コピーされたファイルをエディタで開く
+        if (destPath) {
+          const codeUri = vscode.Uri.file(destPath);
+          openCodeFileAndSetCursor(codeUri);
         }
 
         res.writeHead(200);
@@ -178,4 +186,39 @@ function getTaskIdFromUrl(url: URL): string | null {
     return parts[index + 1];
   }
   return null;
+}
+
+async function openCodeFileAndSetCursor(fileUrl: vscode.Uri) {
+  try {
+    const document = await vscode.workspace.openTextDocument(fileUrl);
+
+    // "pass" という文字列を探して選択状態にする
+    const text = document.getText();
+    const SEARCH_STRING = "pass";
+    const index = text.indexOf(SEARCH_STRING);
+
+    // エディタで開く
+    const editor = await vscode.window.showTextDocument(document, {
+      preview: false,
+    });
+
+    if (index === -1) {
+      return;
+    }
+
+    const start = document.positionAt(index);
+    const end = document.positionAt(index + SEARCH_STRING.length);
+
+    editor.selection = new vscode.Selection(start, end);
+    editor.revealRange(
+      new vscode.Range(start, end),
+      vscode.TextEditorRevealType.InCenter
+    );
+  } catch (err) {
+    vscode.window.showErrorMessage(
+      `Failed to open code file: ${
+        err instanceof Error ? err.message : String(err)
+      }`
+    );
+  }
 }
