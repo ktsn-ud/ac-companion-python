@@ -42,6 +42,11 @@
           "type": "string",
           "default": "tests",
           "description": "テストケースを保存するディレクトリ名"
+        },
+        "ac-companion-python.templateFilePath": {
+          "type": "string",
+          "default": ".config/templates/main.py",
+          "description": "コードテンプレートファイルのパス"
         }
       }
     }

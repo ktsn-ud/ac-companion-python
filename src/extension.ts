@@ -8,7 +8,7 @@ import {
   CompetitiveCompanionsResponse,
 } from "./types/CompetitiveCompanions";
 
-const TEMPLATE_FILE = ".config/templates/main.py";
+const TEMPLATE_FILE_DEFAULT = ".config/templates/main.py";
 
 let server: http.Server | null = null;
 
@@ -95,9 +95,11 @@ async function startServer() {
         );
 
         // テンプレートファイルのコピー
+        const templateRelativePath =
+          config.get<string>("templateFilePath") || TEMPLATE_FILE_DEFAULT;
         const templatePath = path.join(
           workspaceFolders.uri.fsPath,
-          TEMPLATE_FILE
+          templateRelativePath
         );
         if (fs.existsSync(templatePath)) {
           const destPath = path.join(
