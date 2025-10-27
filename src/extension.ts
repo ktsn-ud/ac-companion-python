@@ -9,6 +9,7 @@ import {
 } from "./types/CompetitiveCompanions";
 
 const TEMPLATE_FILE_DEFAULT = ".config/templates/main.py";
+const PLACEHOLDER = "pass";
 
 let server: http.Server | null = null;
 
@@ -193,10 +194,9 @@ async function openCodeFileAndSetCursor(fileUrl: vscode.Uri) {
   try {
     const document = await vscode.workspace.openTextDocument(fileUrl);
 
-    // "pass" という文字列を探して選択状態にする
+    // プレースホルダーを探して選択状態にする
     const text = document.getText();
-    const SEARCH_STRING = "pass";
-    const index = text.indexOf(SEARCH_STRING);
+    const index = text.indexOf(PLACEHOLDER);
 
     // エディタで開く
     const editor = await vscode.window.showTextDocument(document, {
@@ -208,7 +208,7 @@ async function openCodeFileAndSetCursor(fileUrl: vscode.Uri) {
     }
 
     const start = document.positionAt(index);
-    const end = document.positionAt(index + SEARCH_STRING.length);
+    const end = document.positionAt(index + PLACEHOLDER.length);
 
     editor.selection = new vscode.Selection(start, end);
     editor.revealRange(
