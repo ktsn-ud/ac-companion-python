@@ -11,12 +11,15 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
       <!DOCTYPE html>
       <html lang="ja">
       <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>AC Companion Python</title>
       </head>
       <body>
-        <h1>AC Companion Python</h1>
+        <div id="root"></div>
+        <script src="${webviewView.webview.asWebviewUri(
+          vscode.Uri.joinPath(this.extensionUri, "media", "frontend", "main.js")
+        )}"></script>
       </body>
       </html>
     `;

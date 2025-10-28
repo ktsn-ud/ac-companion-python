@@ -1,0 +1,26 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild src/main.tsx --bundle --outfile=../../../media/frontend/main.js --format=iife --sourcemap --define:process.env.NODE_ENV=\\\"production\\\"",
+    "watch": "esbuild src/main.tsx --bundle --outfile=../../../media/frontend/main.js --format=iife --sourcemap --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.18.1",
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@types/vscode-webview": "^1.57.5",
+    "esbuild": "^0.25.11",
+    "typescript": "^5.9.3"
+  }
+}
