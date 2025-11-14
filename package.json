@@ -20,15 +20,23 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "ac-companion-python.start",
-        "title": "AC Companion Python: Start"
-      },
-      {
-        "command": "ac-companion-python.stop",
-        "title": "AC Companion Python: Stop"
-      }
+      "commands": [
+        {
+          "command": "ac-companion-python.start",
+          "title": "AC Companion Python: Start"
+        },
+        {
+          "command": "ac-companion-python.stop",
+          "title": "AC Companion Python: Stop"
+        },
+        {
+          "command": "ac-companion-python.runAll",
+          "title": "AC Companion Python: Run All Tests"
+        },
+        {
+          "command": "ac-companion-python.runOne",
+          "title": "AC Companion Python: Run Test"
+        }
     ],
     "configuration": {
       "title": "AC Companion Python",
@@ -47,6 +55,55 @@
           "type": "string",
           "default": ".config/templates/main.py",
           "description": "コードテンプレートファイルのパス"
+        },
+        "ac-companion-python.interpreter": {
+          "type": "string",
+          "enum": [
+            "cpython",
+            "pypy"
+          ],
+          "default": "cpython",
+          "description": "テスト実行で使用するインタプリタ"
+        },
+        "ac-companion-python.pythonCommand": {
+          "type": "string",
+          "default": "python",
+          "description": "CPython 実行時のコマンド名またはパス"
+        },
+        "ac-companion-python.pypyCommand": {
+          "type": "string",
+          "default": "pypy3",
+          "description": "PyPy 実行時のコマンド名またはパス"
+        },
+        "ac-companion-python.runCwdMode": {
+          "type": "string",
+          "enum": [
+            "workspace",
+            "task"
+          ],
+          "default": "workspace",
+          "description": "テスト実行時のカレントディレクトリ"
+        },
+        "ac-companion-python.timeoutMs": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "default": null,
+          "description": "個別テストケースのタイムアウト（ミリ秒）"
+        },
+        "ac-companion-python.compare.mode": {
+          "type": "string",
+          "enum": [
+            "exact"
+          ],
+          "default": "exact",
+          "description": "テスト出力の比較モード"
+        },
+        "ac-companion-python.compare.caseSensitive": {
+          "type": "boolean",
+          "default": true,
+          "description": "比較時に大文字小文字を区別するか"
         }
       }
     },
