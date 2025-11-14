@@ -1,14 +1,317 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 
-function App() {
+declare const acquireVsCodeApi: () => {
+  postMessage: (message: unknown) => void;
+  getState: () => unknown;
+};
+
+type RunStatus = "pass" | "fail" | "timeout" | "re";
+
+interface ProblemCase {
+  index: number;
+  inputPath: string;
+  outputPath: string;
+}
+
+interface Problem {
+  name: string;
+  group: string;
+  url: string;
+  interactive: boolean;
+  timeLimit: number;
+  contestId: string;
+  taskId: string;
+  testsDir: string;
+  cases: ProblemCase[];
+}
+
+interface RunSettings {
+  interpreter: "cpython" | "pypy";
+  pythonCommand: string;
+  pypyCommand: string;
+  runCwdMode: "workspace" | "task";
+  timeoutMs: number | null;
+  compare: {
+    mode: "exact";
+    caseSensitive: boolean;
+  };
+}
+
+interface RunResult {
+  index: number;
+  status: RunStatus;
+  durationMs: number;
+  actual: string;
+  console: string;
+  diffSummary?: string;
+}
+
+type Message =
+  | {
+      type: "state/init" | "state/update";
+      problem?: Problem;
+      settings: RunSettings;
+    }
+  | {
+      type: "run/progress";
+      scope: "one" | "all";
+      running: boolean;
+      currentIndex?: number;
+    }
+  | {
+      type: "run/result";
+      scope: "one" | "all";
+      result: RunResult;
+    }
+  | {
+      type: "run/complete";
+      scope: "one" | "all";
+      summary: {
+        total: number;
+        passed: number;
+        failed: number;
+        timeouts: number;
+        res: number;
+        durationMs: number;
+      };
+    }
+  | {
+      type: "notice";
+      level: "info" | "warn" | "error";
+      message: string;
+    };
+
+const vscode = acquireVsCodeApi();
+
+function statusLabel(status: RunStatus) {
+  switch (status) {
+    case "pass":
+      return "Pass";
+    case "fail":
+      return "Fail";
+    case "timeout":
+      return "Timeout";
+    case "re":
+      return "Runtime Error";
+  }
+}
+
+const App = () => {
+  const [problem, setProblem] = useState<Problem | null>(null);
+  const [settings, setSettings] = useState<RunSettings | null>(null);
+  const [results, setResults] = useState<Record<number, RunResult>>({});
+  const [running, setRunning] = useState(false);
+  const [statusText, setStatusText] = useState("No problem loaded.");
+  const [notice, setNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent<Message>) => {
+      const message = event.data;
+      switch (message.type) {
+        case "state/init":
+        case "state/update": {
+          setProblem(message.problem ?? null);
+          setSettings(message.settings);
+          setResults({});
+          setStatusText(
+            message.problem
+              ? `Ready: ${message.problem.cases.length} test(s)`
+              : "No problem loaded."
+          );
+          setRunning(false);
+          setNotice(null);
+          break;
+        }
+        case "run/progress": {
+          setRunning(message.running);
+          setStatusText(
+            message.running
+              ? message.currentIndex
+                ? `Running #${message.currentIndex}`
+                : "Running tests..."
+              : "Idle"
+          );
+          break;
+        }
+        case "run/result": {
+          setResults((prev) => ({
+            ...prev,
+            [message.result.index]: message.result,
+          }));
+          break;
+        }
+        case "run/complete": {
+          setRunning(false);
+          setStatusText(
+            `${message.summary.passed}/${message.summary.total} passed (${message.summary.durationMs}ms)`
+          );
+          break;
+        }
+        case "notice": {
+          setNotice(message.message);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener("message", handler);
+    vscode.postMessage({ type: "ui/requestInit" });
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
+  const runAll = () => {
+    vscode.postMessage({ type: "ui/runAll" });
+  };
+
+  const runOne = (index: number) => {
+    vscode.postMessage({ type: "ui/runOne", index });
+  };
+
   return (
-    <div>
-      <h1>AC Companion Python</h1>
-      <div>テスト</div>
+    <div style={{ fontFamily: "system-ui, sans-serif", padding: "12px" }}>
+      <header>
+        <h1>AC Companion Python</h1>
+        <div style={{ marginBottom: "8px", color: "#6c707b" }}>
+          {settings
+            ? `Interpreter: ${settings.interpreter} | Timeout: ${
+                settings.timeoutMs ?? "auto"
+              }ms`
+            : "Nothing loaded yet."}
+        </div>
+        <div style={{ marginBottom: "8px" }}>
+          <button
+            disabled={!problem || running}
+            style={{ marginRight: "8px" }}
+            onClick={runAll}
+          >
+            Run All Tests
+          </button>
+          <span style={{ color: running ? "#1e90ff" : "#6c707b" }}>
+            {statusText}
+          </span>
+        </div>
+      </header>
+
+      {notice && (
+        <div
+          style={{
+            padding: "8px",
+            border: "1px solid #f8bbd0",
+            background: "#ffeef5",
+            color: "#6f1c2e",
+            marginBottom: "12px",
+          }}
+        >
+          {notice}
+        </div>
+      )}
+
+      {problem ? (
+        <section>
+          <div style={{ marginBottom: "12px" }}>
+            <strong>{problem.name}</strong>
+            <div style={{ color: "#6c707b" }}>{problem.group}</div>
+          </div>
+          <div style={{ marginBottom: "12px" }}>
+            {problem.cases.length === 0 ? (
+              <div>No test cases available.</div>
+            ) : (
+              <ul style={{ listStyle: "none", padding: 0 }}>
+                {problem.cases.map((testCase) => {
+                  const result = results[testCase.index];
+                  const status = result ? statusLabel(result.status) : "Pending";
+                  const badgeColor = result
+                    ? result.status === "pass"
+                      ? "#2ea043"
+                      : result.status === "fail"
+                      ? "#d1242f"
+                      : result.status === "timeout"
+                      ? "#daaa3f"
+                      : "#8957e5"
+                    : "#6c707b";
+                  return (
+                    <li
+                      key={testCase.index}
+                      style={{
+                        border: "1px solid #e4e7ec",
+                        borderRadius: "4px",
+                        padding: "8px",
+                        marginBottom: "8px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: "4px",
+                        }}
+                      >
+                        <div>
+                          #{testCase.index}{" "}
+                          <span
+                            style={{
+                              color: "#fff",
+                              background: badgeColor,
+                              borderRadius: "999px",
+                              padding: "2px 8px",
+                              fontSize: "0.75rem",
+                            }}
+                          >
+                            {status}
+                          </span>
+                        </div>
+                        <button
+                          disabled={running}
+                          onClick={() => runOne(testCase.index)}
+                        >
+                          Run
+                        </button>
+                      </div>
+                      {result && result.status !== "pass" && (
+                        <div style={{ marginTop: "6px" }}>
+                          {result.actual && (
+                            <pre
+                              style={{
+                                background: "#f5f5f7",
+                                padding: "8px",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              Actual:
+                              {"\n"}
+                              {result.actual}
+                            </pre>
+                          )}
+                          {result.console && (
+                            <pre
+                              style={{
+                                background: "#efeef1",
+                                padding: "8px",
+                                borderRadius: "4px",
+                              }}
+                            >
+                              Console:
+                              {"\n"}
+                              {result.console}
+                            </pre>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </section>
+      ) : (
+        <div>No tests yet. Send from Competitive Companion.</div>
+      )}
     </div>
   );
-}
+};
 
 const root = createRoot(document.getElementById("root")!);
 root.render(

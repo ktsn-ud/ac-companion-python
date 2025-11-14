@@ -22,6 +22,7 @@ import { getCurrentProblem, setCurrentProblem } from "./core/problemState";
 import { ProblemRecord } from "./types/problem";
 
 import { WebviewProvider } from "./webview/webviewProvider";
+import { RunResult, RunScope, RunSummary } from "./types/runner";
 
 const TEMPLATE_FILE_DEFAULT = ".config/templates/main.py";
 const PLACEHOLDER = "pass";
@@ -29,10 +30,18 @@ const PLACEHOLDER = "pass";
 let server: http.Server | null = null;
 let webviewProvider: WebviewProvider | null = null;
 let outputChannel: vscode.OutputChannel | null = null;
+let isRunning = false;
 
 export function activate(context: vscode.ExtensionContext) {
   outputChannel = vscode.window.createOutputChannel("AC Companion Python");
   context.subscriptions.push(outputChannel);
+
+  const provider = new WebviewProvider(context.extensionUri);
+  webviewProvider = provider;
+  provider.onReady(() => {
+    sendStateToWebview();
+  });
+  provider.onDidReceiveMessage(handleWebviewMessage);
 
   context.subscriptions.push(
     vscode.commands.registerCommand("ac-companion-python.start", startServer),
@@ -44,7 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("ac-companion-python.runOne", handleRunOneTest),
     vscode.window.registerWebviewViewProvider(
       "ac-companion-python.view",
-      new WebviewProvider(context.extensionUri)
+      provider
     )
   );
 
@@ -141,6 +150,7 @@ async function startServer() {
           cases: collectedCases,
         };
         setCurrentProblem(problemRecord);
+        sendStateToWebview();
 
         // テンプレートファイルのコピー
         const templateRelativePath =
@@ -241,30 +251,39 @@ async function handleRunAllTests() {
     return;
   }
 
+  if (isRunning) {
+    vscode.window.showWarningMessage("Already running tests.");
+    return;
+  }
+
   const settings = loadSettings();
+  isRunning = true;
+  const startAt = Date.now();
+  sendRunProgress("all", true);
   outputChannel?.clear();
   outputChannel?.show(true);
   outputChannel?.appendLine(
     `[Run All] ${problem.name} (${problem.contestId}/${problem.taskId})`
   );
 
+  const results: RunResult[] = [];
   try {
-    const results = await runAllTests(problem, settings, workspaceRoot);
-    for (const result of results) {
+    for (const testCase of problem.cases) {
+      sendRunProgress("all", true, testCase.index);
+      const result = await runTestCase(
+        problem,
+        settings,
+        workspaceRoot,
+        testCase
+      );
+      results.push(result);
       outputChannel?.appendLine(
         `#${result.index} ${result.status.toUpperCase()} (${result.durationMs}ms)`
       );
-      if (result.status !== "pass") {
-        if (result.actual) {
-          outputChannel?.appendLine("  Actual:");
-          outputChannel?.appendLine(result.actual);
-        }
-        if (result.console) {
-          outputChannel?.appendLine("  Console:");
-          outputChannel?.appendLine(result.console);
-        }
-      }
+      logResultToOutput(result);
+      sendRunResult("all", result);
     }
+    sendRunComplete("all", results, Date.now() - startAt);
     const passed = results.filter((r) => r.status === "pass").length;
     vscode.window.showInformationMessage(
       `Run All: ${passed}/${results.length} passed`
@@ -273,7 +292,11 @@ async function handleRunAllTests() {
     const message =
       error instanceof Error ? error.message : "Failed to run tests.";
     outputChannel?.appendLine(`Error: ${message}`);
+    sendNotice("error", message);
     vscode.window.showErrorMessage(message);
+  } finally {
+    sendRunProgress("all", false);
+    isRunning = false;
   }
 }
 
@@ -283,6 +306,7 @@ async function handleRunOneTest() {
     vscode.window.showWarningMessage("No problem loaded for AC Companion Python.");
     return;
   }
+
   if (problem.interactive) {
     vscode.window.showWarningMessage("Interactive problems are not supported yet.");
     return;
@@ -290,12 +314,6 @@ async function handleRunOneTest() {
 
   if (problem.cases.length === 0) {
     vscode.window.showWarningMessage("No test cases available to run.");
-    return;
-  }
-
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  if (!workspaceRoot) {
-    vscode.window.showErrorMessage("Workspace folder is required to run tests.");
     return;
   }
 
@@ -318,13 +336,47 @@ async function handleRunOneTest() {
   }
 
   const index = Number.parseInt(indexInput, 10);
+  await runSingleTestByIndex(index);
+}
+
+async function runSingleTestByIndex(index: number) {
+  const problem = getCurrentProblem();
+  if (!problem) {
+    vscode.window.showWarningMessage("No problem loaded for AC Companion Python.");
+    return;
+  }
+
+  if (isRunning) {
+    vscode.window.showWarningMessage("Already running tests.");
+    return;
+  }
+
+  if (problem.interactive) {
+    vscode.window.showWarningMessage("Interactive problems are not supported yet.");
+    return;
+  }
+
+  if (problem.cases.length === 0) {
+    vscode.window.showWarningMessage("No test cases available to run.");
+    return;
+  }
+
   const testCase = problem.cases.find((t) => t.index === index);
   if (!testCase) {
     vscode.window.showErrorMessage(`Test case #${index} not found.`);
     return;
   }
 
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  if (!workspaceRoot) {
+    vscode.window.showErrorMessage("Workspace folder is required to run tests.");
+    return;
+  }
+
   const settings = loadSettings();
+  isRunning = true;
+  const startAt = Date.now();
+  sendRunProgress("one", true, index);
   outputChannel?.show(true);
   outputChannel?.appendLine(`[Run #${index}] ${problem.name}`);
 
@@ -338,16 +390,9 @@ async function handleRunOneTest() {
     outputChannel?.appendLine(
       `#${index} ${result.status.toUpperCase()} (${result.durationMs}ms)`
     );
-    if (result.status !== "pass") {
-      if (result.actual) {
-        outputChannel?.appendLine("  Actual:");
-        outputChannel?.appendLine(result.actual);
-      }
-      if (result.console) {
-        outputChannel?.appendLine("  Console:");
-        outputChannel?.appendLine(result.console);
-      }
-    }
+    logResultToOutput(result);
+    sendRunResult("one", result);
+    sendRunComplete("one", [result], Date.now() - startAt);
     vscode.window.showInformationMessage(
       `Test #${index}: ${result.status.toUpperCase()}`
     );
@@ -355,7 +400,13 @@ async function handleRunOneTest() {
     const message =
       error instanceof Error ? error.message : "Failed to run the test.";
     outputChannel?.appendLine(`Error: ${message}`);
+    outputChannel?.appendLine("Execution aborted.");
+    outputChannel?.show(true);
+    sendNotice("error", message);
     vscode.window.showErrorMessage(message);
+  } finally {
+    sendRunProgress("one", false);
+    isRunning = false;
   }
 }
 
@@ -420,6 +471,103 @@ function loadSettings(): AcCompanionPythonSettings {
       caseSensitive: compareCaseSensitive ?? true,
     },
   };
+}
+
+function postToWebview(message: any) {
+  webviewProvider?.postMessage(message);
+}
+
+function buildRunSettingsPayload(settings: AcCompanionPythonSettings) {
+  return {
+    interpreter: settings.interpreter,
+    pythonCommand: settings.pythonCommand,
+    pypyCommand: settings.pypyCommand,
+    runCwdMode: settings.runCwdMode,
+    timeoutMs: settings.timeoutMs,
+    compare: settings.compare,
+  };
+}
+
+function sendStateToWebview() {
+  const settings = loadSettings();
+  const problem = getCurrentProblem();
+  postToWebview({
+    type: "state/init",
+    problem: problem ?? undefined,
+    settings: buildRunSettingsPayload(settings),
+  });
+}
+
+function sendRunProgress(
+  scope: RunScope,
+  running: boolean,
+  currentIndex?: number
+) {
+  postToWebview({ type: "run/progress", scope, running, currentIndex });
+}
+
+function buildRunSummary(results: RunResult[], durationMs: number): RunSummary {
+  const passed = results.filter((r) => r.status === "pass").length;
+  const failed = results.filter((r) => r.status === "fail").length;
+  const timeouts = results.filter((r) => r.status === "timeout").length;
+  const res = results.filter((r) => r.status === "re").length;
+  return {
+    total: results.length,
+    passed,
+    failed,
+    timeouts,
+    res,
+    durationMs,
+  };
+}
+
+function sendRunResult(scope: "one" | "all", result: RunResult) {
+  postToWebview({ type: "run/result", scope, result });
+}
+
+function sendRunComplete(scope: RunScope, results: RunResult[], durationMs: number) {
+  postToWebview({
+    type: "run/complete",
+    scope,
+    summary: buildRunSummary(results, durationMs),
+  });
+}
+
+function sendNotice(level: "info" | "warn" | "error", message: string) {
+  postToWebview({ type: "notice", level, message });
+}
+
+function handleWebviewMessage(message: any) {
+  if (!message || typeof message !== "object") {
+    return;
+  }
+  switch (message.type) {
+    case "ui/requestInit":
+      sendStateToWebview();
+      break;
+    case "ui/runAll":
+      void handleRunAllTests();
+      break;
+    case "ui/runOne":
+      if (typeof message.index === "number") {
+        void runSingleTestByIndex(message.index);
+      }
+      break;
+  }
+}
+
+function logResultToOutput(result: RunResult) {
+  if (result.status === "pass") {
+    return;
+  }
+  if (result.actual) {
+    outputChannel?.appendLine("  Actual:");
+    outputChannel?.appendLine(result.actual);
+  }
+  if (result.console) {
+    outputChannel?.appendLine("  Console:");
+    outputChannel?.appendLine(result.console);
+  }
 }
 
 /**
