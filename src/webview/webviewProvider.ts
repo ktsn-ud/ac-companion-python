@@ -1,12 +1,12 @@
 import * as vscode from "vscode";
 
 export class WebviewProvider implements vscode.WebviewViewProvider {
+  private _view?: vscode.WebviewView;
   constructor(private extensionUri: vscode.Uri) {}
 
   public resolveWebviewView(webviewView: vscode.WebviewView) {
-    webviewView.webview.options = {
-      enableScripts: true,
-    };
+    this._view = webviewView;
+    webviewView.webview.options = { enableScripts: true };
     webviewView.webview.html = `
       <!DOCTYPE html>
       <html lang="ja">
@@ -23,5 +23,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
       </body>
       </html>
     `;
+  }
+
+  public postMessage(message: any) {
+    this._view?.webview.postMessage(message);
   }
 }

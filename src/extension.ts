@@ -14,6 +14,7 @@ const TEMPLATE_FILE_DEFAULT = ".config/templates/main.py";
 const PLACEHOLDER = "pass";
 
 let server: http.Server | null = null;
+let webviewProvider: WebviewProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
