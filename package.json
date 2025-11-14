@@ -49,6 +49,25 @@
           "description": "コードテンプレートファイルのパス"
         }
       }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ac-companion-python",
+          "title": "AC Companion Python",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "ac-companion-python": [
+        {
+          "id": "ac-companion-python.view",
+          "name": "ACCP Panel",
+          "icon": "media/icon.svg",
+          "type": "webview"
+        }
+      ]
     }
   },
   "scripts": {

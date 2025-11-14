@@ -8,15 +8,22 @@ import {
   CompetitiveCompanionsResponse,
 } from "./types/CompetitiveCompanions";
 
+import { WebviewProvider } from "./webview/webviewProvider";
+
 const TEMPLATE_FILE_DEFAULT = ".config/templates/main.py";
 const PLACEHOLDER = "pass";
 
 let server: http.Server | null = null;
+let webviewProvider: WebviewProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand("ac-companion-python.start", startServer),
-    vscode.commands.registerCommand("ac-companion-python.stop", stopServer)
+    vscode.commands.registerCommand("ac-companion-python.stop", stopServer),
+    vscode.window.registerWebviewViewProvider(
+      "ac-companion-python.view",
+      new WebviewProvider(context.extensionUri)
+    )
   );
 
   startServer();
@@ -152,6 +159,14 @@ async function startServer() {
   vscode.window.showInformationMessage(
     `AC Companion Python server started on port ${port}.`
   );
+
+  const statusBarItem = vscode.window.createStatusBarItem(
+    vscode.StatusBarAlignment.Right,
+    0
+  );
+  statusBarItem.text = `ACCP: Running`;
+  statusBarItem.command = "ac-companion-python.stop";
+  statusBarItem.show();
 }
 
 function stopServer() {
