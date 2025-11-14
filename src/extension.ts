@@ -7,6 +7,7 @@ import {
   TestCase,
   CompetitiveCompanionsResponse,
 } from "./types/CompetitiveCompanions";
+import { AcCompanionPythonSettings, Interpreter, RunCwdMode } from "./types/config";
 
 import { WebviewProvider } from "./webview/webviewProvider";
 
@@ -39,8 +40,8 @@ async function startServer() {
     return;
   }
 
-  const config = vscode.workspace.getConfiguration("ac-companion-python");
-  const port = config.get<number>("port") || 10043;
+  const initialSettings = loadSettings();
+  const port = initialSettings.port;
 
   server = http.createServer(async (req, res) => {
     try {
@@ -64,6 +65,8 @@ async function startServer() {
           return;
         }
 
+        const settings = loadSettings();
+
         const contestId = getContestIdFromUrl(url);
         const taskId = getTaskIdFromUrl(url);
         if (!contestId || !taskId) {
@@ -73,8 +76,7 @@ async function startServer() {
         }
 
         // 保存ディレクトリの作成
-        const dirRelative =
-          config.get<string>("testCaseSaveDirName") || "tests";
+        const dirRelative = settings.testCaseSaveDirName;
         const saveDir = path.join(
           workspaceFolders.uri.fsPath,
           contestId,
@@ -83,17 +85,19 @@ async function startServer() {
         );
         fs.mkdirSync(saveDir, { recursive: true });
 
+        const nextIndex = getNextTestIndex(saveDir);
+
         // テストケースの保存
         tests.forEach((test, index) => {
-          const idx = index + 1;
+          const idx = nextIndex + index;
           fs.writeFileSync(
             path.join(saveDir, `${idx}.in`),
-            test?.input ?? "",
+            normalizeLineEndings(test?.input ?? ""),
             "utf-8"
           );
           fs.writeFileSync(
             path.join(saveDir, `${idx}.out`),
-            test?.output ?? "",
+            normalizeLineEndings(test?.output ?? ""),
             "utf-8"
           );
         });
@@ -104,31 +108,32 @@ async function startServer() {
 
         // テンプレートファイルのコピー
         const templateRelativePath =
-          config.get<string>("templateFilePath") || TEMPLATE_FILE_DEFAULT;
+          settings.templateFilePath || TEMPLATE_FILE_DEFAULT;
         const templatePath = path.join(
           workspaceFolders.uri.fsPath,
           templateRelativePath
         );
 
-        let destPath: string | null = null;
-        if (fs.existsSync(templatePath)) {
-          destPath = path.join(
-            workspaceFolders.uri.fsPath,
-            contestId,
-            taskId,
-            "main.py"
-          );
-          fs.mkdirSync(path.dirname(destPath), { recursive: true });
-          fs.copyFileSync(templatePath, destPath);
-        } else {
-          vscode.window.showWarningMessage(
-            `Template file not found at ${templatePath}. Skipping template copy.`
-          );
+        const solutionDir = path.join(
+          workspaceFolders.uri.fsPath,
+          contestId,
+          taskId
+        );
+        fs.mkdirSync(solutionDir, { recursive: true });
+        const solutionPath = path.join(solutionDir, "main.py");
+        if (!fs.existsSync(solutionPath)) {
+          if (fs.existsSync(templatePath)) {
+            fs.copyFileSync(templatePath, solutionPath);
+          } else {
+            vscode.window.showWarningMessage(
+              `Template file not found at ${templatePath}. Skipping template copy.`
+            );
+          }
         }
 
-        // コピーされたファイルをエディタで開く
-        if (destPath) {
-          const codeUri = vscode.Uri.file(destPath);
+        // ソリューションファイルをエディタで開く
+        if (fs.existsSync(solutionPath)) {
+          const codeUri = vscode.Uri.file(solutionPath);
           openCodeFileAndSetCursor(codeUri);
         }
 
@@ -203,6 +208,75 @@ function getTaskIdFromUrl(url: URL): string | null {
     return parts[index + 1];
   }
   return null;
+}
+
+/**
+ * VS Code の拡張設定から AC Companion Python の構成を読み取ります。
+ */
+function loadSettings(): AcCompanionPythonSettings {
+  const config = vscode.workspace.getConfiguration("ac-companion-python");
+  const interpreter = config.get<Interpreter>("interpreter", "cpython");
+  const runCwdMode = config.get<RunCwdMode>("runCwdMode", "workspace");
+  const compareMode = config.get<string>("compare.mode", "exact");
+  const mode: AcCompanionPythonSettings["compare"]["mode"] =
+    compareMode === "exact" ? "exact" : "exact";
+  const compareCaseSensitive = config.get<boolean>(
+    "compare.caseSensitive",
+    true
+  );
+
+  const timeoutMs = config.get<number | null>("timeoutMs");
+
+  return {
+    port: config.get<number>("port", 10043),
+    testCaseSaveDirName: config.get<string>("testCaseSaveDirName", "tests"),
+    templateFilePath: config.get<string>(
+      "templateFilePath",
+      TEMPLATE_FILE_DEFAULT
+    ),
+    interpreter,
+    pythonCommand: config.get<string>("pythonCommand", "python"),
+    pypyCommand: config.get<string>("pypyCommand", "pypy3"),
+    runCwdMode,
+    timeoutMs: typeof timeoutMs === "number" ? timeoutMs : null,
+    compare: {
+      mode,
+      caseSensitive: compareCaseSensitive ?? true,
+    },
+  };
+}
+
+/**
+ * 保存先ディレクトリ内の既存テストケース番号を確認し、
+ * 末尾のインデックス（＋1）を返します。
+ * @param dir テストケースディレクトリ
+ */
+function getNextTestIndex(dir: string): number {
+  let maxIndex = 0;
+  try {
+    const files = fs.readdirSync(dir);
+    for (const file of files) {
+      const matches = file.match(/^(\d+)\.(?:in|out)$/);
+      if (!matches) {
+        continue;
+      }
+      const value = Number(matches[1]);
+      if (Number.isFinite(value)) {
+        maxIndex = Math.max(maxIndex, value);
+      }
+    }
+  } catch {
+    // ディレクトリが存在しないなら 0 のままでよい
+  }
+  return maxIndex + 1;
+}
+
+/**
+ * CRLF を含む任意の改行コードを LF に正規化します。
+ * @param value 元の文字列
+ */
+function normalizeLineEndings(value: string): string {
+  return value.replace(/\r\n?/g, "\n");
 }
 
 async function openCodeFileAndSetCursor(fileUrl: vscode.Uri) {

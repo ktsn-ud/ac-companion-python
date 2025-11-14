@@ -41,3 +41,27 @@ AC Companion Python は、AtCoder の問題ページから取得したサンプ�
 
 - テストケースを受け取った後にテンプレートファイルを自動コピーする機能を実装
 - エディタ上でテンプレートファイルを自動でオープンし，`pass`を選択する
+
+## Extension Settings
+
+この拡張機能では以下の設定項目を提供しています。
+- `ac-companion-python.port` (既定値: `10043`)  
+  Competitive Companion からの POST を受け付けるポート番号。
+- `ac-companion-python.testCaseSaveDirName` (既定値: `tests`)  
+  テスト用 `.in/.out` を配置するディレクトリ名。
+- `ac-companion-python.templateFilePath` (既定値: `.config/templates/main.py`)  
+  `main.py` が見つからない際にコピーされるテンプレートファイルへのパス。
+- `ac-companion-python.interpreter` (既定値: `cpython`)  
+  実行時に使用するインタプリタ（`cpython` または `pypy`）。
+- `ac-companion-python.pythonCommand` (既定値: `python`)  
+  CPython 実行時のコマンド名/パス。
+- `ac-companion-python.pypyCommand` (既定値: `pypy3`)  
+  PyPy 実行時のコマンド名/パス。
+- `ac-companion-python.runCwdMode` (既定値: `workspace`)  
+  テスト実行時のカレントディレクトリ（現時点ではワークスペースルートのみ）。
+- `ac-companion-python.timeoutMs` (既定値: `null`)  
+  個別ケースのタイムアウト上限（ミリ秒）。未設定時は問題の timeLimit × 1.2 を目安に実行。
+- `ac-companion-python.compare.mode` (既定値: `exact`)  
+  出力比較モード（将来的に `trim`/`tokens` なども追加予定）。
+- `ac-companion-python.compare.caseSensitive` (既定値: `true`)  
+  出力比較時の大文字小文字判定。
