@@ -119,28 +119,39 @@ async function startServer() {
         );
         fs.mkdirSync(saveDir, { recursive: true });
 
-        const nextIndex = getNextTestIndex(saveDir);
+        const existingCases = collectTestCases(saveDir);
 
-        // テストケースの保存
-        tests.forEach((test, index) => {
-          const idx = nextIndex + index;
-          fs.writeFileSync(
-            path.join(saveDir, `${idx}.in`),
-            normalizeLineEndings(test?.input ?? ""),
-            "utf-8"
+        let savedCount = 0;
+        if (existingCases.length === 0 && tests.length > 0) {
+          const nextIndex = getNextTestIndex(saveDir);
+          tests.forEach((test, index) => {
+            const idx = nextIndex + index;
+            fs.writeFileSync(
+              path.join(saveDir, `${idx}.in`),
+              normalizeLineEndings(test?.input ?? ""),
+              "utf-8"
+            );
+            fs.writeFileSync(
+              path.join(saveDir, `${idx}.out`),
+              normalizeLineEndings(test?.output ?? ""),
+              "utf-8"
+            );
+          });
+          savedCount = tests.length;
+          vscode.window.showInformationMessage(
+            `Saved ${savedCount} test case(s) to ${saveDir}.`
           );
-          fs.writeFileSync(
-            path.join(saveDir, `${idx}.out`),
-            normalizeLineEndings(test?.output ?? ""),
-            "utf-8"
+        } else if (existingCases.length > 0) {
+          vscode.window.showInformationMessage(
+            `Tests already exist in ${saveDir}; skipping addition.`
           );
-        });
-
-        vscode.window.showInformationMessage(
-          `Saved ${tests.length} test case(s) to ${saveDir}.`
-        );
-
+        } else {
+          vscode.window.showInformationMessage(
+            `No new test cases to save for ${saveDir}.`
+          );
+        }
         const collectedCases = collectTestCases(saveDir);
+
         const problemRecord: ProblemRecord = {
           name: data.name ?? "",
           group: data.group ?? "",

@@ -9,6 +9,7 @@ AC Companion Python は、AtCoder の問題ページから取得したサンプ�
 - VS Code コマンドパレットからのサーバー開始・停止 (`AC Companion Python: Start` / `AC Companion Python: Stop`)
 - ポート番号と保存ディレクトリ名を設定からカスタマイズ可能
 - コマンドパレットから `Run All Tests` / `Run Test` を起動し、保存済みケースを実行
+- 既存のテストケースがある場合、再インポートでは上書きせずスキップします
 
 ## Requirements
 
