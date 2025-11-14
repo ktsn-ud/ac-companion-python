@@ -568,6 +568,20 @@ function sendNotice(level: "info" | "warn" | "error", message: string) {
   postToWebview({ type: "notice", level, message });
 }
 
+async function switchInterpreter(interpreter: Interpreter) {
+  try {
+    const config = vscode.workspace.getConfiguration("ac-companion-python");
+    await config.update("interpreter", interpreter, vscode.ConfigurationTarget.Workspace);
+    const label = interpreter === "cpython" ? "CPython" : "PyPy";
+    sendNotice("info", `${label} interpreter selected.`);
+    sendStateToWebview();
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to switch interpreter.";
+    sendNotice("error", message);
+  }
+}
+
 function handleWebviewMessage(message: any) {
   if (!message || typeof message !== "object") {
     return;
@@ -582,6 +596,14 @@ function handleWebviewMessage(message: any) {
     case "ui/runOne":
       if (typeof message.index === "number") {
         void runSingleTestByIndex(message.index);
+      }
+      break;
+    case "ui/switchInterpreter":
+      if (
+        message.interpreter === "cpython" ||
+        message.interpreter === "pypy"
+      ) {
+        void switchInterpreter(message.interpreter);
       }
       break;
   }

@@ -2,6 +2,8 @@ export interface TestCaseFile {
   index: number;
   inputPath: string;
   outputPath: string;
+  inputContent: string;
+  expectedContent: string;
 }
 
 export interface ProblemRecord {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 declare const acquireVsCodeApi: () => {
@@ -12,6 +12,8 @@ interface ProblemCase {
   index: number;
   inputPath: string;
   outputPath: string;
+  inputContent: string;
+  expectedContent: string;
 }
 
 interface Problem {
@@ -105,6 +107,53 @@ const App = () => {
   const [statusText, setStatusText] = useState("No problem loaded.");
   const [notice, setNotice] = useState<string | null>(null);
 
+  const computedTimeoutMs = useMemo(() => {
+    if (settings?.timeoutMs != null) {
+      return Math.max(1, settings.timeoutMs);
+    }
+    if (problem) {
+      return Math.max(1, Math.ceil(problem.timeLimit * 1.2));
+    }
+    return null;
+  }, [problem, settings]);
+
+  const timeoutLabel =
+    computedTimeoutMs != null ? `${computedTimeoutMs}ms` : "auto";
+
+  const toggleInterpreter = () => {
+    if (!settings) {
+      return;
+    }
+    const next =
+      settings.interpreter === "cpython" ? "pypy" : "cpython";
+    vscode.postMessage({
+      type: "ui/switchInterpreter",
+      interpreter: next,
+    });
+  };
+
+  const renderTextBlock = (
+    label: string,
+    content: string,
+    background = "#f5f5f7"
+  ) => (
+    <div style={{ marginTop: "6px" }}>
+      <div style={{ fontSize: "0.85rem", color: "#6c707b" }}>{label}</div>
+      <pre
+        style={{
+          background,
+          padding: "8px",
+          borderRadius: "4px",
+          margin: "4px 0 0",
+          whiteSpace: "pre-wrap",
+          wordBreak: "break-word",
+        }}
+      >
+        {content || "(empty)"}
+      </pre>
+    </div>
+  );
+
   useEffect(() => {
     const handler = (event: MessageEvent<Message>) => {
       const message = event.data;
@@ -174,12 +223,21 @@ const App = () => {
         <h1>AC Companion Python</h1>
         <div style={{ marginBottom: "8px", color: "#6c707b" }}>
           {settings
-            ? `Interpreter: ${settings.interpreter} | Timeout: ${
-                settings.timeoutMs ?? "auto"
-              }ms`
+            ? `Interpreter: ${settings.interpreter} | Timeout: ${timeoutLabel}`
             : "Nothing loaded yet."}
         </div>
         <div style={{ marginBottom: "8px" }}>
+          <button
+            disabled={!settings || running}
+            onClick={toggleInterpreter}
+            style={{
+              marginRight: "8px",
+              background: running ? "#d4d7dd" : "#eff0f3",
+            }}
+          >
+            Switch to{" "}
+            {settings?.interpreter === "cpython" ? "PyPy" : "CPython"}
+          </button>
           <button
             disabled={!problem || running}
             style={{ marginRight: "8px" }}
@@ -269,36 +327,26 @@ const App = () => {
                           Run
                         </button>
                       </div>
-                      {result && result.status !== "pass" && (
-                        <div style={{ marginTop: "6px" }}>
-                          {result.actual && (
-                            <pre
-                              style={{
-                                background: "#f5f5f7",
-                                padding: "8px",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              Actual:
-                              {"\n"}
-                              {result.actual}
-                            </pre>
+                      <div>
+                        {renderTextBlock("Input", testCase.inputContent)}
+                        {renderTextBlock(
+                          "Expected",
+                          testCase.expectedContent,
+                          "#e9f0ff"
+                        )}
+                        {result &&
+                          renderTextBlock(
+                            "Actual",
+                            result.actual,
+                            "#e8f5ef"
                           )}
-                          {result.console && (
-                            <pre
-                              style={{
-                                background: "#efeef1",
-                                padding: "8px",
-                                borderRadius: "4px",
-                              }}
-                            >
-                              Console:
-                              {"\n"}
-                              {result.console}
-                            </pre>
+                        {result?.console &&
+                          renderTextBlock(
+                            "Console",
+                            result.console,
+                            "#efeef1"
                           )}
-                        </div>
-                      )}
+                      </div>
                     </li>
                   );
                 })}

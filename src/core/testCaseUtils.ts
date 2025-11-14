@@ -57,11 +57,28 @@ export function collectTestCases(dir: string): TestCaseFile[] {
     }
   }
 
+  const readFileSafe = (target: string) => {
+    try {
+      if (fs.existsSync(target)) {
+        return fs.readFileSync(target, "utf-8");
+      }
+    } catch {
+      // 読み取りエラーは空文字として扱う
+    }
+    return "";
+  };
+
   return Array.from(indexes)
     .sort((a, b) => a - b)
-    .map((index) => ({
-      index,
-      inputPath: path.join(dir, `${index}.in`),
-      outputPath: path.join(dir, `${index}.out`),
-    }));
+    .map((index) => {
+      const inputPath = path.join(dir, `${index}.in`);
+      const outputPath = path.join(dir, `${index}.out`);
+      return {
+        index,
+        inputPath,
+        outputPath,
+        inputContent: readFileSafe(inputPath),
+        expectedContent: readFileSafe(outputPath),
+      };
+    });
 }

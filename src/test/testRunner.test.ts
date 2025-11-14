@@ -27,7 +27,11 @@ const DEFAULT_SETTINGS: AcCompanionPythonSettings = {
   },
 };
 
-function createWorkspaceFixture(script: string, input: string, expected: string) {
+function createWorkspaceFixture(
+  script: string,
+  input: string,
+  expected: string
+) {
   const workspaceRoot = fs.mkdtempSync(path.join(os.tmpdir(), "accp-runner-"));
   const contestId = "sample-contest";
   const taskId = "task-a";
@@ -51,7 +55,15 @@ function createWorkspaceFixture(script: string, input: string, expected: string)
     contestId,
     taskId,
     testsDir: "tests",
-    cases: [{ index: 1, inputPath, outputPath }],
+    cases: [
+      {
+        index: 1,
+        inputPath,
+        outputPath,
+        inputContent: input,
+        expectedContent: expected,
+      },
+    ],
   };
   return { workspaceRoot, problem };
 }
