@@ -1,12 +1,17 @@
 import React from "react";
 import { Problem, RunResult } from "../webviewTypes";
+import { JSX } from "react";
 
 export interface TestListProps {
   problem: Problem;
   results: Record<number, RunResult>;
   running: boolean;
   onRunOne: (index: number) => void;
-  renderTextBlock: (label: string, content: string, background?: string) => JSX.Element;
+  renderTextBlock: (
+    label: string,
+    content: string,
+    background?: string
+  ) => JSX.Element;
 }
 
 const statusBadgeColor = (status: RunResult["status"]) => {
@@ -86,9 +91,12 @@ export const TestList: React.FC<TestListProps> = ({
                   </button>
                 </div>
                 {renderTextBlock("Input", testCase.inputContent)}
-                {renderTextBlock("Expected", testCase.expectedContent, "#e9f0ff")}
-                {result &&
-                  renderTextBlock("Actual", result.actual, "#e8f5ef")}
+                {renderTextBlock(
+                  "Expected",
+                  testCase.expectedContent,
+                  "#e9f0ff"
+                )}
+                {result && renderTextBlock("Actual", result.actual, "#e8f5ef")}
                 {result?.console &&
                   renderTextBlock("Console", result.console, "#efeef1")}
               </li>
