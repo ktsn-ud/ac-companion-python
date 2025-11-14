@@ -62,6 +62,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {}
 
+/**
+ * Competitive Companion からの POST を受け取り、テストケースファイルを保存しテンプレートをコピーする HTTP サーバーを起動します。
+ * すでに起動済みであれば情報メッセージを表示し、新しいサーバーは立ち上げません。
+ */
 async function startServer() {
   if (server) {
     vscode.window.showInformationMessage(
@@ -229,6 +233,9 @@ function stopServer() {
   vscode.window.showInformationMessage("AC Companion Python server stopped.");
 }
 
+/**
+ * 現在の ProblemRecord に含まれるすべてのケースを順番に実行し、実行状況や結果を UI に通知する。
+ */
 async function handleRunAllTests() {
   const problem = getCurrentProblem();
   if (!problem) {
@@ -300,6 +307,9 @@ async function handleRunAllTests() {
   }
 }
 
+/**
+ * 入力されたインデックスのテストケースだけを実行し、Webview の `run/result` などを発行する。
+ */
 async function handleRunOneTest() {
   const problem = getCurrentProblem();
   if (!problem) {
@@ -339,6 +349,9 @@ async function handleRunOneTest() {
   await runSingleTestByIndex(index);
 }
 
+/**
+ * Webview のインデックス指定に応じて単一テストを実行し、通知をまとめて送信する。
+ */
 async function runSingleTestByIndex(index: number) {
   const problem = getCurrentProblem();
   if (!problem) {
@@ -488,6 +501,9 @@ function buildRunSettingsPayload(settings: AcCompanionPythonSettings) {
   };
 }
 
+/**
+ * 現在の問題状態と設定を Webview に送信するためのユーティリティ。
+ */
 function sendStateToWebview() {
   const settings = loadSettings();
   const problem = getCurrentProblem();
@@ -498,6 +514,9 @@ function sendStateToWebview() {
   });
 }
 
+/**
+ * 実行中フラグや現在のケース番号を Webview に通知します。
+ */
 function sendRunProgress(
   scope: RunScope,
   running: boolean,
@@ -506,6 +525,9 @@ function sendRunProgress(
   postToWebview({ type: "run/progress", scope, running, currentIndex });
 }
 
+/**
+ * テスト結果群を集計し、summary オブジェクトを構築します。
+ */
 function buildRunSummary(results: RunResult[], durationMs: number): RunSummary {
   const passed = results.filter((r) => r.status === "pass").length;
   const failed = results.filter((r) => r.status === "fail").length;
@@ -521,10 +543,16 @@ function buildRunSummary(results: RunResult[], durationMs: number): RunSummary {
   };
 }
 
+/**
+ * 単一テストの結果を Webview に送信します。
+ */
 function sendRunResult(scope: "one" | "all", result: RunResult) {
   postToWebview({ type: "run/result", scope, result });
 }
 
+/**
+ * 全体の実行結果を集計し、完了イベントを通知します。
+ */
 function sendRunComplete(scope: RunScope, results: RunResult[], durationMs: number) {
   postToWebview({
     type: "run/complete",
@@ -533,6 +561,9 @@ function sendRunComplete(scope: RunScope, results: RunResult[], durationMs: numb
   });
 }
 
+/**
+ * ユーザー向け通知メッセージを Webview に伝搬します。
+ */
 function sendNotice(level: "info" | "warn" | "error", message: string) {
   postToWebview({ type: "notice", level, message });
 }

@@ -9,6 +9,9 @@ import { normalizeLineEndings } from "./testCaseUtils";
 
 const PYPY_CACHE_WARNING = "Warning: cannot find your CPU L2 & L3 cache size";
 
+/**
+ * PyPy の L2/L3 キャッシュ警告などを削除し、不要な stderr を抑制する。
+ */
 function filterConsoleOutput(value: string): string {
   return value
     .split("\n")
@@ -17,6 +20,9 @@ function filterConsoleOutput(value: string): string {
     .trim();
 }
 
+/**
+ * 設定に基づき、出力結果を比較する。大文字小文字の差を許容するかどうかも here.
+ */
 function compareOutputs(
   expected: string,
   actual: string,
@@ -28,6 +34,9 @@ function compareOutputs(
   return actual.toLowerCase() === expected.toLowerCase();
 }
 
+/**
+ * CLI 設定または問題の timeLimit から適切なタイムアウトを算出します。
+ */
 function computeTimeout(problem: ProblemRecord, settings: AcCompanionPythonSettings) {
   if (typeof settings.timeoutMs === "number") {
     return Math.max(1, settings.timeoutMs);
@@ -35,6 +44,9 @@ function computeTimeout(problem: ProblemRecord, settings: AcCompanionPythonSetti
   return Math.max(1, Math.ceil(problem.timeLimit * 1.2));
 }
 
+/**
+ * ワークスペースまたは問題のディレクトリを runCwdMode に応じて返します。
+ */
 function resolveCwd(
   settings: AcCompanionPythonSettings,
   workspaceRoot: string,
@@ -46,6 +58,9 @@ function resolveCwd(
   return workspaceRoot;
 }
 
+/**
+ * 指定した単一ケースの実行と stdout/stderr のキャプチャ、比較結果の判定を行います。
+ */
 export async function runTestCase(
   problem: ProblemRecord,
   settings: AcCompanionPythonSettings,
@@ -138,6 +153,9 @@ export async function runTestCase(
   });
 }
 
+/**
+ * ProblemRecord に含まれる全ケースを順番に実行し、結果を配列で返します。
+ */
 export async function runAllTests(
   problem: ProblemRecord,
   settings: AcCompanionPythonSettings,

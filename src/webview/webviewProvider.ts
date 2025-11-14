@@ -8,6 +8,9 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 
   constructor(private extensionUri: vscode.Uri) {}
 
+  /**
+   * Webview が初期化されたタイミングで HTML を提供し、メッセージの受信・キュー処理を整えます。
+   */
   public resolveWebviewView(webviewView: vscode.WebviewView) {
     this._view = webviewView;
     webviewView.webview.options = { enableScripts: true };
@@ -42,14 +45,23 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
     this._onReadyListeners.forEach((listener) => listener());
   }
 
+  /**
+   * Webview からのメッセージを受け取ったときに呼び出すリスナーを登録します。
+   */
   public onDidReceiveMessage(listener: (message: any) => void) {
     this._onMessageListeners.push(listener);
   }
 
+  /**
+   * Webview が ready 状態になった際に実行するコールバックを登録します。
+   */
   public onReady(listener: () => void) {
     this._onReadyListeners.push(listener);
   }
 
+  /**
+   * Webview にメッセージを送信します。View がまだ用意できていない場合はキューに貯めます。
+   */
   public postMessage(message: any) {
     if (this._view) {
       this._view.webview.postMessage(message);
