@@ -8,6 +8,7 @@ AC Companion Python は、AtCoder の問題ページから取得したサンプ�
 - `コンテストID/タスクID/<保存ディレクトリ名>` という構造でテストケースを自動配置
 - VS Code コマンドパレットからのサーバー開始・停止 (`AC Companion Python: Start` / `AC Companion Python: Stop`)
 - ポート番号と保存ディレクトリ名を設定からカスタマイズ可能
+- コマンドパレットから `Run All Tests` / `Run Test` を起動し、保存済みケースを実行
 
 ## Requirements
 
@@ -48,6 +49,7 @@ AC Companion Python は、AtCoder の問題ページから取得したサンプ�
 - `main.py` は既に存在する場合にテンプレートで上書きされず、ステータスバーからもアクセス可能な状態を維持します。
 - 新しい設定項目（インタプリタ、タイムアウト、比較モードなど）とそのドキュメントを追加し、将来的なランナー/サイドバー連携に備えています。
 - テストケースユーティリティにユニットテストを追加し、コードの安定性を高めました。
+- コマンドパレットの `Run All Tests` / `Run Test` で保存済みケースを実行し、Output パネルへ結果を出力します。
 
 ## Extension Settings
 

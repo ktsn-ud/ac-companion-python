@@ -1,4 +1,7 @@
 import * as fs from "fs";
+import * as path from "path";
+
+import { TestCaseFile } from "../types/problem";
 
 /**
  * 保存先ディレクトリ内の既存テストケース番号を確認し、
@@ -31,4 +34,34 @@ export function getNextTestIndex(dir: string): number {
  */
 export function normalizeLineEndings(value: string): string {
   return value.replace(/\r\n?/g, "\n");
+}
+
+/**
+ * 指定したディレクトリ内の `.in`/`.out` ペアをスキャンし、
+ * 全てのテストケースを番号昇順で返します。
+ * @param dir テストケース用ディレクトリ
+ */
+export function collectTestCases(dir: string): TestCaseFile[] {
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+  const indexes = new Set<number>();
+  for (const entry of fs.readdirSync(dir)) {
+    const matches = entry.match(/^(\d+)\.in$/);
+    if (!matches) {
+      continue;
+    }
+    const value = Number(matches[1]);
+    if (Number.isFinite(value)) {
+      indexes.add(value);
+    }
+  }
+
+  return Array.from(indexes)
+    .sort((a, b) => a - b)
+    .map((index) => ({
+      index,
+      inputPath: path.join(dir, `${index}.in`),
+      outputPath: path.join(dir, `${index}.out`),
+    }));
 }

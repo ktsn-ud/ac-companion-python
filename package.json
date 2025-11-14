@@ -20,15 +20,23 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "ac-companion-python.start",
-        "title": "AC Companion Python: Start"
-      },
-      {
-        "command": "ac-companion-python.stop",
-        "title": "AC Companion Python: Stop"
-      }
+      "commands": [
+        {
+          "command": "ac-companion-python.start",
+          "title": "AC Companion Python: Start"
+        },
+        {
+          "command": "ac-companion-python.stop",
+          "title": "AC Companion Python: Stop"
+        },
+        {
+          "command": "ac-companion-python.runAll",
+          "title": "AC Companion Python: Run All Tests"
+        },
+        {
+          "command": "ac-companion-python.runOne",
+          "title": "AC Companion Python: Run Test"
+        }
     ],
     "configuration": {
       "title": "AC Companion Python",
