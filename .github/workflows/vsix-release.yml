@@ -22,7 +22,7 @@ jobs:
           version: 10
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install -r
 
       - name: Build webview assets
         run: pnpm --filter frontend run build:css && pnpm --filter frontend run build
