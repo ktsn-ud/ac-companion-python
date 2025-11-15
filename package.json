@@ -20,23 +20,23 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-      "commands": [
-        {
-          "command": "ac-companion-python.start",
-          "title": "AC Companion Python: Start"
-        },
-        {
-          "command": "ac-companion-python.stop",
-          "title": "AC Companion Python: Stop"
-        },
-        {
-          "command": "ac-companion-python.runAll",
-          "title": "AC Companion Python: Run All Tests"
-        },
-        {
-          "command": "ac-companion-python.runOne",
-          "title": "AC Companion Python: Run Test"
-        }
+    "commands": [
+      {
+        "command": "ac-companion-python.start",
+        "title": "AC Companion Python: Start"
+      },
+      {
+        "command": "ac-companion-python.stop",
+        "title": "AC Companion Python: Stop"
+      },
+      {
+        "command": "ac-companion-python.runAll",
+        "title": "AC Companion Python: Run All Tests"
+      },
+      {
+        "command": "ac-companion-python.runOne",
+        "title": "AC Companion Python: Run Test"
+      }
     ],
     "configuration": {
       "title": "AC Companion Python",
@@ -136,14 +136,14 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.105.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
+    "@types/vscode": "^1.105.0",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
-    "eslint": "^9.36.0",
-    "typescript": "^5.9.3",
     "@vscode/test-cli": "^0.0.11",
-    "@vscode/test-electron": "^2.5.2"
+    "@vscode/test-electron": "^2.5.2",
+    "eslint": "^9.36.0",
+    "typescript": "^5.9.3"
   }
 }
