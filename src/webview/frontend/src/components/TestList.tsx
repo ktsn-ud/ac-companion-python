@@ -1,6 +1,7 @@
 import React from "react";
 import { Problem, RunResult } from "../webviewTypes";
 import { JSX } from "react";
+import { clsx } from "clsx";
 
 export interface TestListProps {
   problem: Problem;
@@ -16,14 +17,14 @@ export interface TestListProps {
 
 const statusBadgeColor = (status: RunResult["status"]) => {
   switch (status) {
-    case "pass":
-      return "#2ea043";
-    case "fail":
-      return "#d1242f";
-    case "timeout":
-      return "#daaa3f";
-    case "re":
-      return "#8957e5";
+    case "AC":
+      return "bg-green-900";
+    case "WA":
+      return "bg-red-900";
+    case "TLE":
+      return "bg-yellow-900";
+    case "RE":
+      return "bg-purple-900";
   }
 };
 
@@ -38,47 +39,80 @@ export const TestList: React.FC<TestListProps> = ({
     return <div>No test cases available.</div>;
   }
 
+  const totalCases = problem.cases.length;
+  let acCount = 0;
+  let runCount = 0;
+  let hasNonAc = false;
+
+  for (const testCase of problem.cases) {
+    const result = results[testCase.index];
+    if (!result) continue;
+    runCount += 1;
+    if (result.status === "AC") {
+      acCount += 1;
+    } else {
+      hasNonAc = true;
+    }
+  }
+
+  let overallStatus: "AC" | "WA" | "PENDING" = "PENDING";
+  if (runCount === totalCases && acCount === totalCases && totalCases > 0) {
+    overallStatus = "AC";
+  } else if (hasNonAc) {
+    overallStatus = "WA";
+  }
+
+  const overallResultColor =
+    overallStatus === "AC"
+      ? "bg-green-900"
+      : overallStatus === "WA"
+      ? "bg-red-900"
+      : "bg-gray-900";
+
   return (
     <section>
-      <div style={{ marginBottom: "12px" }}>
-        <strong>{problem.name}</strong>
-        <div style={{ color: "#6c707b" }}>{problem.group}</div>
+      <div className="my-3 space-y-1">
+        <div className="font-bold text-lg">{problem.name}</div>
+        <div className="text-muted-foreground">{problem.group}</div>
       </div>
-      <div style={{ marginBottom: "12px" }}>
-        <ul style={{ listStyle: "none", padding: 0 }}>
+      <div className="space-y-6">
+        {/* 全体の結果 */}
+        <div
+          className={clsx(
+            "rounded bg-card flex items-center justify-between px-3 py-2",
+            overallResultColor,
+            overallStatus === "PENDING" ? "border border-border" : ""
+          )}
+        >
+          <span className="text-white text-sm">
+            {acCount}/{totalCases} AC
+          </span>
+          <span className="text-white text-sm rounded-full border border-white px-2 py-0.5">
+            {overallStatus}
+          </span>
+        </div>
+        {/* 各テストケースの結果 */}
+        <ul className="list-none p-0 space-y-4">
           {problem.cases.map((testCase) => {
             const result = results[testCase.index];
             const badgeColor = result
               ? statusBadgeColor(result.status)
-              : "#6c707b";
+              : "bg-gray-800";
             return (
               <li
                 key={testCase.index}
-                style={{
-                  border: "1px solid #e4e7ec",
-                  borderRadius: "4px",
-                  padding: "8px",
-                  marginBottom: "8px",
-                }}
+                className="border border-border rounded p-2"
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "4px",
-                  }}
-                >
-                  <div>
-                    #{testCase.index}{" "}
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex gap-2 items-center">
+                    <span className="font-bold text-lg">
+                      Testcase #{testCase.index}
+                    </span>
                     <span
-                      style={{
-                        color: "#fff",
-                        background: badgeColor,
-                        borderRadius: "999px",
-                        padding: "2px 8px",
-                        fontSize: "0.75rem",
-                      }}
+                      className={clsx(
+                        "text-white rounded-full py-0.5 px-2 text-xs",
+                        badgeColor
+                      )}
                     >
                       {result ? result.status.toUpperCase() : "PENDING"}
                     </span>
@@ -86,19 +120,22 @@ export const TestList: React.FC<TestListProps> = ({
                   <button
                     disabled={running}
                     onClick={() => onRunOne(testCase.index)}
+                    className="bg-primary text-primary-foreground hover:bg-primary-hover rounded-sm px-2 py-1"
                   >
                     Run
                   </button>
                 </div>
                 {renderTextBlock("Input", testCase.inputContent)}
                 {renderTextBlock(
-                  "Expected",
+                  "Expected Output",
                   testCase.expectedContent,
-                  "#e9f0ff"
+                  "bg-emerald-900"
                 )}
-                {result && renderTextBlock("Actual", result.actual, "#e8f5ef")}
+                {result &&
+                  result.status !== "AC" &&
+                  renderTextBlock("Actual Output", result.actual, "bg-red-900")}
                 {result?.console &&
-                  renderTextBlock("Console", result.console, "#efeef1")}
+                  renderTextBlock("Console", result.console, "bg-gray-800")}
               </li>
             );
           })}

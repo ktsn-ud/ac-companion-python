@@ -21,32 +21,28 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
   return (
     <header>
       <h1>AC Companion Python</h1>
-      <div style={{ marginBottom: "8px", color: "#6c707b" }}>
+      <div className="text-muted-foreground my-2">
         {settings
           ? `Interpreter: ${settings.interpreter} | Timeout: ${timeoutLabel}`
           : "Nothing loaded yet."}
       </div>
-      <div style={{ marginBottom: "8px" }}>
+      <button
+        disabled={!settings || running}
+        onClick={onToggleInterpreter}
+        className="block my-2 bg-secondary text-secondary-foreground rounded px-3 py-1"
+      >
+        Switch to {settings?.interpreter === "cpython" ? "PyPy" : "CPython"}
+      </button>
+      <div className="bg-muted-foreground h-px my-4"></div>
+      <div className="flex gap-3 mb-2 items-center">
         <button
           disabled={!settings || running}
-          onClick={onToggleInterpreter}
-          style={{
-            marginRight: "8px",
-            background: running ? "#d4d7dd" : "#eff0f3",
-          }}
-        >
-          Switch to {settings?.interpreter === "cpython" ? "PyPy" : "CPython"}
-        </button>
-        <button
-          disabled={!running && !settings ? true : !settings || running}
-          style={{ marginRight: "8px" }}
           onClick={onRunAll}
+          className="bg-primary hover:bg-primary-hover text-primary-foreground rounded px-3 py-1"
         >
           Run All Tests
         </button>
-        <span style={{ color: running ? "#1e90ff" : "#6c707b" }}>
-          {statusText}
-        </span>
+        <span className="text-muted-foreground">{statusText}</span>
       </div>
     </header>
   );

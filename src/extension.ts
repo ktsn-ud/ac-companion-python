@@ -320,10 +320,6 @@ async function handleRunAllTests() {
       sendRunResult("all", result);
     }
     sendRunComplete("all", results, Date.now() - startAt);
-    const passed = results.filter((r) => r.status === "pass").length;
-    vscode.window.showInformationMessage(
-      `Run All: ${passed}/${results.length} passed`
-    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to run tests.";
@@ -445,9 +441,6 @@ async function runSingleTestByIndex(index: number) {
     logResultToOutput(result);
     sendRunResult("one", result);
     sendRunComplete("one", [result], Date.now() - startAt);
-    vscode.window.showInformationMessage(
-      `Test #${index}: ${result.status.toUpperCase()}`
-    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to run the test.";
@@ -570,10 +563,10 @@ function sendRunProgress(
  * テスト結果群を集計し、summary オブジェクトを構築します。
  */
 function buildRunSummary(results: RunResult[], durationMs: number): RunSummary {
-  const passed = results.filter((r) => r.status === "pass").length;
-  const failed = results.filter((r) => r.status === "fail").length;
-  const timeouts = results.filter((r) => r.status === "timeout").length;
-  const res = results.filter((r) => r.status === "re").length;
+  const passed = results.filter((r) => r.status === "AC").length;
+  const failed = results.filter((r) => r.status === "WA").length;
+  const timeouts = results.filter((r) => r.status === "TLE").length;
+  const res = results.filter((r) => r.status === "RE").length;
   return {
     total: results.length,
     passed,
@@ -656,7 +649,7 @@ function handleWebviewMessage(message: any) {
 }
 
 function logResultToOutput(result: RunResult) {
-  if (result.status === "pass") {
+  if (result.status === "AC") {
     return;
   }
   if (result.actual) {

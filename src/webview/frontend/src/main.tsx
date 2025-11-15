@@ -1,13 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import {
-  Message,
-  Problem,
-  RunResult,
-  RunSettings,
-} from "./webviewTypes";
+import { Message, Problem, RunResult, RunSettings } from "./webviewTypes";
 import { HeaderControls } from "./components/HeaderControls";
 import { TestList } from "./components/TestList";
+import { clsx } from "clsx";
 
 declare const acquireVsCodeApi: () => {
   postMessage: (message: unknown) => void;
@@ -111,19 +107,15 @@ const App = () => {
   const renderTextBlock = (
     label: string,
     content: string,
-    background = "#f5f5f7"
+    background: string = "bg-gray-800"
   ) => (
-    <div style={{ marginTop: "6px" }}>
-      <div style={{ fontSize: "0.85rem", color: "#6c707b" }}>{label}</div>
+    <div className="mt-1.5">
+      <div className="text-sm text-muted-foreground">{label}</div>
       <pre
-        style={{
-          background,
-          padding: "8px",
-          borderRadius: "4px",
-          margin: "4px 0 0",
-          whiteSpace: "pre-wrap",
-          wordBreak: "break-word",
-        }}
+        className={clsx(
+          "p-2 rounded-sm my-1 whitespace-pre-wrap break-all",
+          background
+        )}
       >
         {content || "(empty)"}
       </pre>
