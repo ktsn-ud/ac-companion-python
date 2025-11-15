@@ -92,13 +92,14 @@ export const TestList: React.FC<TestListProps> = ({
                 </div>
                 {renderTextBlock("Input", testCase.inputContent)}
                 {renderTextBlock(
-                  "Expected",
+                  "Expected Output",
                   testCase.expectedContent,
-                  "#e9f0ff"
+                  "bg-emerald-900"
                 )}
-                {result && renderTextBlock("Actual", result.actual, "#e8f5ef")}
+                {result &&
+                  renderTextBlock("Actual Output", result.actual, "bg-sky-900")}
                 {result?.console &&
-                  renderTextBlock("Console", result.console, "#efeef1")}
+                  renderTextBlock("Console", result.console, "bg-gray-800")}
               </li>
             );
           })}
