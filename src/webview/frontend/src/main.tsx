@@ -47,6 +47,10 @@ const App = () => {
                 : "Running tests..."
               : "Idle"
           );
+          // テスト実行開始時に結果をリセット
+          if (message.running && message.scope) {
+            setResults({});
+          }
           break;
         }
         case "run/result": {
