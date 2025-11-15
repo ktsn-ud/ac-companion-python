@@ -37,7 +37,10 @@ function compareOutputs(
 /**
  * CLI 設定または問題の timeLimit から適切なタイムアウトを算出します。
  */
-function computeTimeout(problem: ProblemRecord, settings: AcCompanionPythonSettings) {
+function computeTimeout(
+  problem: ProblemRecord,
+  settings: AcCompanionPythonSettings
+) {
   if (typeof settings.timeoutMs === "number") {
     return Math.max(1, settings.timeoutMs);
   }
@@ -79,7 +82,8 @@ export async function runTestCase(
 
   const input = fs.readFileSync(testCase.inputPath, "utf-8");
   const expected =
-    fs.existsSync(testCase.outputPath) && fs.statSync(testCase.outputPath).isFile()
+    fs.existsSync(testCase.outputPath) &&
+    fs.statSync(testCase.outputPath).isFile()
       ? fs.readFileSync(testCase.outputPath, "utf-8")
       : "";
 
@@ -122,16 +126,14 @@ export async function runTestCase(
         Buffer.concat(stdoutChunks).toString("utf-8")
       );
       const consoleOutput = filterConsoleOutput(
-        normalizeLineEndings(
-          Buffer.concat(stderrChunks).toString("utf-8")
-        )
+        normalizeLineEndings(Buffer.concat(stderrChunks).toString("utf-8"))
       );
       let status: RunStatus;
 
       if (timedOut) {
-        status = "timeout";
+        status = "TLE";
       } else if (code !== 0) {
-        status = "re";
+        status = "RE";
       } else {
         const normalizedExpected = normalizeLineEndings(expected);
         const passed = compareOutputs(
@@ -139,7 +141,7 @@ export async function runTestCase(
           actual,
           settings.compare.caseSensitive
         );
-        status = passed ? "pass" : "fail";
+        status = passed ? "AC" : "WA";
       }
 
       resolve({
@@ -163,7 +165,12 @@ export async function runAllTests(
 ): Promise<RunResult[]> {
   const results: RunResult[] = [];
   for (const testCase of problem.cases) {
-    const result = await runTestCase(problem, settings, workspaceRoot, testCase);
+    const result = await runTestCase(
+      problem,
+      settings,
+      workspaceRoot,
+      testCase
+    );
     results.push(result);
   }
   return results;

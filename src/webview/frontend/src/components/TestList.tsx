@@ -16,13 +16,13 @@ export interface TestListProps {
 
 const statusBadgeColor = (status: RunResult["status"]) => {
   switch (status) {
-    case "pass":
+    case "AC":
       return "#2ea043";
-    case "fail":
+    case "WA":
       return "#d1242f";
-    case "timeout":
+    case "TLE":
       return "#daaa3f";
-    case "re":
+    case "RE":
       return "#8957e5";
   }
 };
@@ -97,7 +97,8 @@ export const TestList: React.FC<TestListProps> = ({
                   "bg-emerald-900"
                 )}
                 {result &&
-                  renderTextBlock("Actual Output", result.actual, "bg-sky-900")}
+                  result.status !== "AC" &&
+                  renderTextBlock("Actual Output", result.actual, "bg-red-900")}
                 {result?.console &&
                   renderTextBlock("Console", result.console, "bg-gray-800")}
               </li>

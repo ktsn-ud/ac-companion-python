@@ -1,4 +1,4 @@
-export type RunStatus = "pass" | "fail" | "timeout" | "re";
+export type RunStatus = "AC" | "WA" | "TLE" | "RE";
 
 export interface ProblemCase {
   index: number;

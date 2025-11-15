@@ -320,7 +320,7 @@ async function handleRunAllTests() {
       sendRunResult("all", result);
     }
     sendRunComplete("all", results, Date.now() - startAt);
-    const passed = results.filter((r) => r.status === "pass").length;
+    const passed = results.filter((r) => r.status === "AC").length;
     vscode.window.showInformationMessage(
       `Run All: ${passed}/${results.length} passed`
     );
@@ -570,10 +570,10 @@ function sendRunProgress(
  * テスト結果群を集計し、summary オブジェクトを構築します。
  */
 function buildRunSummary(results: RunResult[], durationMs: number): RunSummary {
-  const passed = results.filter((r) => r.status === "pass").length;
-  const failed = results.filter((r) => r.status === "fail").length;
-  const timeouts = results.filter((r) => r.status === "timeout").length;
-  const res = results.filter((r) => r.status === "re").length;
+  const passed = results.filter((r) => r.status === "AC").length;
+  const failed = results.filter((r) => r.status === "WA").length;
+  const timeouts = results.filter((r) => r.status === "TLE").length;
+  const res = results.filter((r) => r.status === "RE").length;
   return {
     total: results.length,
     passed,
@@ -656,7 +656,7 @@ function handleWebviewMessage(message: any) {
 }
 
 function logResultToOutput(result: RunResult) {
-  if (result.status === "pass") {
+  if (result.status === "AC") {
     return;
   }
   if (result.actual) {
