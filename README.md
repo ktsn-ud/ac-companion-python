@@ -93,6 +93,10 @@ AC Companion Python は、AtCoder の問題ページから取得したサンプ�
 
 ## Release Notes
 
+### 1.0.1
+
+- テスト実行時に前回のテスト結果が残り、AC のはずが WA や古いスタックトレースが表示されることがある問題を修正
+
 ### 1.0.0
 
 - サイドバー UI（ACCP Panel）を実装し、Run All／個別実行と結果表示（AC/WA/TLE/RE）に対応
