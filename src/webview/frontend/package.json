@@ -28,6 +28,7 @@
     "@types/vscode-webview": "^1.57.5",
     "concurrently": "^9.2.1",
     "esbuild": "^0.25.11",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "tailwindcss": "^4.1.17"
   }
 }
