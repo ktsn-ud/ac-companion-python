@@ -1,81 +1,115 @@
 # AC Companion Python
 
-AC Companion Python は、AtCoder の問題ページから取得したサンプルテストケースを VS Code ワークスペース内に自動保存するための拡張機能です。Competitive Companion ブラウザ拡張機能が解析した問題情報を受け取り、コンテスト ID／タスク ID ごとのディレクトリにテストケースを整理して配置します。
+AC Companion Python は、AtCoder の問題ページから取得したサンプルテストケースを VS Code ワークスペース内に自動保存し、サイドバーから素早くローカル実行できる拡張機能です。Competitive Companion ブラウザ拡張が解析した問題情報を受け取り、コンテスト ID／タスク ID ごとに整理して配置します。
 
 ## Features
 
-- Competitive Companion から送信されるサンプルテストケースをローカルサーバーで受信
-- `コンテストID/タスクID/<保存ディレクトリ名>` という構造でテストケースを自動配置
-- VS Code コマンドパレットからのサーバー開始・停止 (`AC Companion Python: Start` / `AC Companion Python: Stop`)
-- ポート番号と保存ディレクトリ名を設定からカスタマイズ可能
-- コマンドパレットから `Run All Tests` / `Run Test` を起動し、保存済みケースを実行
-- 既存のテストケースがある場合、再インポートでは上書きせずスキップします
+- Competitive Companion からの POST をローカルサーバーで受信し自動保存
+- `コンテストID/タスクID/<保存ディレクトリ名>` 構造で `.in/.out` を作成
+- テンプレート `main.py` を自動配置（未存在のときのみ）し、エディタで自動オープン＋`pass` を選択
+- サイドバー（ACCP Panel）でテスト一覧を表示し、Run All / 各テストの実行が可能
+- インタプリタを CPython / PyPy で切替（サイドバーからワンクリック）
+- 出力の比較（完全一致、大小文字の判定切替）と結果の表示（AC/WA/TLE/RE）
+- コマンドパレット: Start/Stop/Run All/Run Test を提供
+- 既存のテストがある場合、再インポートでは上書きせずスキップ
 
 ## Requirements
 
-1. [Competitive Companion](https://github.com/jmerle/competitive-companion) ブラウザ拡張機能
-   - 拡張機能の “Custom test case endpoints” に `http://127.0.0.1:10043/`（または設定したポート番号）を登録してください。
-   - 対応サイトとして AtCoder を有効にしておきます。
-2. テストケースを保存したいフォルダを VS Code のワークスペースとして開いていること
+1. Competitive Companion（ブラウザ拡張）
 
-## Extension Settings
+- 設定の「Custom test case endpoints」に `http://127.0.0.1:10043/`（または本拡張のポート設定）を追加
+- 対応サイトとして AtCoder を有効化
 
-この拡張機能は次の設定項目を提供します。
+2. VS Code ワークスペース
 
-- `ac-companion-python.port` (既定値: `10043`)  
-  Competitive Companion が POST するポート番号。ブラウザ側のエンドポイント設定と揃えてください。
-- `ac-companion-python.testCaseSaveDirName` (既定値: `tests`)  
-  テストケースを保存するディレクトリ名。存在しない場合は自動で作成されます。
+- 目的の保存先フォルダをワークスペースとして開いてください
+
+## Quick Start
+
+1. VS Code でワークスペースを開く
+2. コマンドパレットから「AC Companion Python: Start」を実行（起動済みなら不要）
+3. ブラウザで AtCoder の問題ページを開き、Competitive Companion の送信ボタンを押す
+4. `/<contestId>/<taskId>/` に `tests/` と `main.py`（未存在時のみ）が作成されます
+5. VS Code 左側の「AC Companion Python」ビュー（ACCP Panel）でテストを実行
+
+## Directory Layout
+
+```
+/<workspace>/
+  <contestId>/
+    <taskId>/
+      main.py
+      <testsDir>/
+        1.in
+        1.out
+        2.in
+        2.out
+        ...
+```
+
+既定の `<testsDir>` は `tests`、テンプレートは `.config/templates/main.py` を参照します。テンプレートは自動生成されないため、必要なら事前に用意してください。
+
+## Commands
+
+- `AC Companion Python: Start` サーバーを起動
+- `AC Companion Python: Stop` サーバーを停止
+- `AC Companion Python: Run All Tests` すべてのテストを実行
+- `AC Companion Python: Run Test` インデックスを指定して 1 件実行
+
+サイドバー（ACCP Panel）からも Run All／各テストの実行、インタプリタ切替が可能です。
+
+## Settings
+
+- `ac-companion-python.port` (default: `10043`)
+  - Competitive Companion が POST するポート番号
+- `ac-companion-python.testCaseSaveDirName` (default: `tests`)
+  - テストケースを保存するディレクトリ名（なければ自動作成）
+- `ac-companion-python.templateFilePath` (default: `.config/templates/main.py`)
+  - `main.py` が未存在のときにコピーするテンプレートのパス
+- `ac-companion-python.interpreter` (default: `cpython`)
+  - 使用インタプリタ（`cpython` / `pypy`）
+- `ac-companion-python.pythonCommand` (default: `python`)
+  - CPython 実行コマンド
+- `ac-companion-python.pypyCommand` (default: `pypy3`)
+  - PyPy 実行コマンド
+- `ac-companion-python.runCwdMode` (default: `workspace`)
+  - 実行時のカレントディレクトリ（`workspace` または `task`）
+- `ac-companion-python.timeoutMs` (default: `null`)
+  - 個別ケースのタイムアウト（ms）。未設定時は `timeLimit × 1.2` を自動採用
+- `ac-companion-python.compare.mode` (default: `exact`)
+  - 出力比較モード（現状 `exact`）
+- `ac-companion-python.compare.caseSensitive` (default: `true`)
+  - 出力比較の大小文字判定
+
+## Notes
+
+- インタラクティブ問題は未対応です
+- 実行ログは Output パネル「AC Companion Python」にも出力されます
+- ステータスバーに `ACCP: Running` が表示されている間は受信サーバーが起動中です
 
 ## Known Issues
 
-現在報告されている既知の問題はありません。
+現在のところ大きな既知の問題はありません。問題を見つけた場合は issue でご報告ください。
 
 ## Release Notes
 
-### 0.0.1
+### 1.0.0
 
-- Competitive Companion から受信したテストケースを自動保存する基本機能を実装。
-- コマンドパレットからのサーバー開始・停止に対応。
-- 保存先ディレクトリとポート番号の設定を追加。
+- サイドバー UI（ACCP Panel）を実装し、Run All／個別実行と結果表示（AC/WA/TLE/RE）に対応
+- CPython / PyPy のインタプリタ切替を追加
+- タイムアウト、自動比較（大小文字の判定切替）の設定を追加
+- 既存テストがある場合は上書きせずスキップ（初回のみ自動保存）
+- `main.py` を未存在時のみテンプレートからコピーし、エディタで自動オープン（`pass` を選択）
 
 ### 0.1.0
 
-- テストケースを受け取った後にテンプレートファイルを自動コピーする機能を実装
-- エディタ上でテンプレートファイルを自動でオープンし，`pass`を選択する
+- テンプレートファイルの自動コピーとエディタ自動オープンを追加
 
-### 1.0.0 (next merge target)
+### 0.0.1
 
-- Competitive Companion から受信したサンプルケースの追記保存（マージポリシー）を導入し、既存ケースを上書きしないようにしました。
-- `main.py` は既に存在する場合にテンプレートで上書きされず、ステータスバーからもアクセス可能な状態を維持します。
-- 新しい設定項目（インタプリタ、タイムアウト、比較モードなど）とそのドキュメントを追加し、将来的なランナー/サイドバー連携に備えています。
-- テストケースユーティリティにユニットテストを追加し、コードの安定性を高めました。
-- コマンドパレットの `Run All Tests` / `Run Test` で保存済みケースを実行し、Output パネルへ結果を出力します。
+- Competitive Companion から受信したテストケースの自動保存
+- サーバー開始・停止コマンド、保存先/ポート設定を追加
 
-## Extension Settings
+## License
 
-この拡張機能では以下の設定項目を提供しています。
-- `ac-companion-python.port` (既定値: `10043`)  
-  Competitive Companion からの POST を受け付けるポート番号。
-- `ac-companion-python.testCaseSaveDirName` (既定値: `tests`)  
-  テスト用 `.in/.out` を配置するディレクトリ名。
-- `ac-companion-python.templateFilePath` (既定値: `.config/templates/main.py`)  
-  `main.py` が見つからない際にコピーされるテンプレートファイルへのパス。
-- `ac-companion-python.interpreter` (既定値: `cpython`)  
-  実行時に使用するインタプリタ（`cpython` または `pypy`）。
-- `ac-companion-python.pythonCommand` (既定値: `python`)  
-  CPython 実行時のコマンド名/パス。
-- `ac-companion-python.pypyCommand` (既定値: `pypy3`)  
-  PyPy 実行時のコマンド名/パス。
-- `ac-companion-python.runCwdMode` (既定値: `workspace`)  
-  テスト実行時のカレントディレクトリ（現時点ではワークスペースルートのみ）。
-- `ac-companion-python.timeoutMs` (既定値: `null`)  
-  個別ケースのタイムアウト上限（ミリ秒）。未設定時は問題の timeLimit × 1.2 を目安に実行。
-- `ac-companion-python.compare.mode` (既定値: `exact`)  
-  出力比較モード（将来的に `trim`/`tokens` なども追加予定）。
-- `ac-companion-python.compare.caseSensitive` (既定値: `true`)  
-  出力比較時の大文字小文字判定。
-
-## コメント方針
-
-公開関数や複雑な処理には簡潔な日本語コメントを付与しています。コード全体で読み手に意図を伝えることを重視しており、今後の修正でも同じスタイルを続けてください。
+MIT
