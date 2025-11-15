@@ -9,7 +9,7 @@
     "watch": "esbuild src/main.tsx --bundle --outfile=../../../media/frontend/main.js --format=iife --sourcemap --watch",
     "build:css": "tailwindcss -i ./styles/tailwind.css -o ../../../media/frontend/main.css --minify",
     "watch:css": "tailwindcss -i ./styles/tailwind.css -o ../../../media/frontend/main.css --watch",
-    "dev": "sh -c \"pnpm run watch:css & pnpm run watch\""
+    "dev": "concurrently \"pnpm:watch:css\" \"pnpm:watch\""
   },
   "keywords": [],
   "author": "",
@@ -25,6 +25,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@types/vscode-webview": "^1.57.5",
+    "concurrently": "^9.2.1",
     "esbuild": "^0.25.11",
     "typescript": "^5.9.3"
   }
