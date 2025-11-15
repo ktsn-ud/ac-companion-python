@@ -1,1 +1,44 @@
 @import "tailwindcss";
+
+/* ---------------------------
+   Reset（Webview特有の崩れ対策）
+---------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ---------------------------
+   VS Code テーマ → カスタム変数化
+---------------------------- */
+:root {
+  --color-bg: var(--vscode-editor-background);
+  --color-fg: var(--vscode-editor-foreground);
+
+  --color-accent: var(--vscode-button-background);
+  --color-accent-fg: var(--vscode-button-foreground);
+
+  --color-border: var(--vscode-editorWidget-border);
+}
+
+/* ---------------------------
+   Base スタイル
+---------------------------- */
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+}
+
+#root {
+  height: 100%;
+}
