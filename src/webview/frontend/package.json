@@ -1,0 +1,33 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "esbuild src/main.tsx --bundle --outfile=../../../media/frontend/main.js --format=iife --sourcemap --define:process.env.NODE_ENV=\\\"production\\\"",
+    "watch": "esbuild src/main.tsx --bundle --outfile=../../../media/frontend/main.js --format=iife --sourcemap --watch",
+    "build:css": "tailwindcss -i ./styles/tailwind.css -o ../../../media/frontend/main.css --minify",
+    "watch:css": "tailwindcss -i ./styles/tailwind.css -o ../../../media/frontend/main.css --watch",
+    "dev": "concurrently \"pnpm:watch:css\" \"pnpm:watch\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.18.1",
+  "dependencies": {
+    "@tailwindcss/cli": "^4.1.17",
+    "clsx": "^2.1.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwindcss": "^4.1.17"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "@types/vscode-webview": "^1.57.5",
+    "concurrently": "^9.2.1",
+    "esbuild": "^0.25.11",
+    "typescript": "^5.9.3"
+  }
+}

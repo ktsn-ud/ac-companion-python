@@ -24,6 +24,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build webview assets
+        run: pnpm --filter frontend run build:css && pnpm --filter frontend run build
+
       - name: Build extension
         run: pnpm dlx @vscode/vsce package
 
