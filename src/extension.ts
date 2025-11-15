@@ -320,10 +320,6 @@ async function handleRunAllTests() {
       sendRunResult("all", result);
     }
     sendRunComplete("all", results, Date.now() - startAt);
-    const passed = results.filter((r) => r.status === "AC").length;
-    vscode.window.showInformationMessage(
-      `Run All: ${passed}/${results.length} passed`
-    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to run tests.";
@@ -445,9 +441,6 @@ async function runSingleTestByIndex(index: number) {
     logResultToOutput(result);
     sendRunResult("one", result);
     sendRunComplete("one", [result], Date.now() - startAt);
-    vscode.window.showInformationMessage(
-      `Test #${index}: ${result.status.toUpperCase()}`
-    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to run the test.";

@@ -18,13 +18,13 @@ export interface TestListProps {
 const statusBadgeColor = (status: RunResult["status"]) => {
   switch (status) {
     case "AC":
-      return "bg-green-800";
+      return "bg-green-900";
     case "WA":
-      return "bg-red-800";
+      return "bg-red-900";
     case "TLE":
-      return "bg-yellow-800";
+      return "bg-yellow-900";
     case "RE":
-      return "bg-purple-800";
+      return "bg-purple-900";
   }
 };
 
@@ -39,17 +39,60 @@ export const TestList: React.FC<TestListProps> = ({
     return <div>No test cases available.</div>;
   }
 
+  const totalCases = problem.cases.length;
+  let acCount = 0;
+  let runCount = 0;
+  let hasNonAc = false;
+
+  for (const testCase of problem.cases) {
+    const result = results[testCase.index];
+    if (!result) continue;
+    runCount += 1;
+    if (result.status === "AC") {
+      acCount += 1;
+    } else {
+      hasNonAc = true;
+    }
+  }
+
+  let overallStatus: "AC" | "WA" | "PENDING" = "PENDING";
+  if (runCount === totalCases && acCount === totalCases && totalCases > 0) {
+    overallStatus = "AC";
+  } else if (hasNonAc) {
+    overallStatus = "WA";
+  }
+
+  const overallResultColor =
+    overallStatus === "AC"
+      ? "bg-green-900"
+      : overallStatus === "WA"
+      ? "bg-red-900"
+      : "bg-gray-900";
+
   return (
     <section>
       <div className="my-3 space-y-1">
         <div className="font-bold text-lg">{problem.name}</div>
         <div className="text-muted-foreground">{problem.group}</div>
       </div>
-      <div className="rounded bg-card">
-        {/* TODO: ここにテスト結果（幾つ中幾つがACなのか、全体としてACなのかWAなのか）を表示 */}
-      </div>
-      <div className="mb-3">
-        <ul className="list-none p-0">
+      <div className="space-y-6">
+        {/* 全体の結果 */}
+        <div
+          className={clsx(
+            "rounded bg-card flex items-center justify-between px-3 py-2",
+            overallResultColor,
+            overallStatus === "PENDING" ? "border border-border" : ""
+          )}
+        >
+          <span className="text-white text-sm">
+            {acCount}/{totalCases} AC
+          </span>
+          <span className="text-white text-sm rounded-full border border-white px-2 py-0.5">
+            {overallStatus}
+          </span>
+        </div>
+        {/* 各テストケースの結果 */}
+        <ul className="list-none p-0 space-y-4">
           {problem.cases.map((testCase) => {
             const result = results[testCase.index];
             const badgeColor = result
@@ -58,7 +101,7 @@ export const TestList: React.FC<TestListProps> = ({
             return (
               <li
                 key={testCase.index}
-                className="border border-border rounded p-2 mb-2"
+                className="border border-border rounded p-2"
               >
                 <div className="flex justify-between items-center mb-1">
                   <div className="flex gap-2 items-center">
