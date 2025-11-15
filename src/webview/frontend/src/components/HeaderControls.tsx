@@ -36,7 +36,7 @@ export const HeaderControls: React.FC<HeaderControlsProps> = ({
       <div className="bg-muted-foreground h-px my-4"></div>
       <div className="flex gap-3 mb-2 items-center">
         <button
-          disabled={!running && !settings ? true : !settings || running}
+          disabled={!settings || running}
           onClick={onRunAll}
           className="bg-primary hover:bg-primary-hover text-primary-foreground rounded px-3 py-1"
         >
