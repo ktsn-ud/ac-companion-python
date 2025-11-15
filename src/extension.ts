@@ -50,7 +50,10 @@ export function activate(context: vscode.ExtensionContext) {
       "ac-companion-python.runAll",
       handleRunAllTests
     ),
-    vscode.commands.registerCommand("ac-companion-python.runOne", handleRunOneTest),
+    vscode.commands.registerCommand(
+      "ac-companion-python.runOne",
+      handleRunOneTest
+    ),
     vscode.window.registerWebviewViewProvider(
       "ac-companion-python.view",
       provider
@@ -77,138 +80,145 @@ async function startServer() {
   const initialSettings = loadSettings();
   const port = initialSettings.port;
 
-  server = http.createServer(async (req, res) => {
-    try {
-      if (req.method === "POST" && req.url === "/") {
-        const body = await readBody(req);
-        const data: CompetitiveCompanionsResponse = JSON.parse(
-          body.toString("utf-8")
-        );
-        const tests: TestCase[] = Array.isArray(data?.tests) ? data.tests : [];
-        const url = URL.canParse(data?.url) ? new URL(data.url) : null;
-        if (!url) {
-          res.writeHead(400);
-          res.end("Invalid or missing URL.");
-          return;
-        }
+  server = http.createServer(
+    async (req: http.IncomingMessage, res: http.ServerResponse) => {
+      try {
+        if (req.method === "POST" && req.url === "/") {
+          const body = await readBody(req);
+          const data: CompetitiveCompanionsResponse = JSON.parse(
+            body.toString("utf-8")
+          );
+          const tests: TestCase[] = Array.isArray(data?.tests)
+            ? data.tests
+            : [];
+          const url =
+            typeof data?.url === "string" && /^https?:\/\//.test(data.url)
+              ? new URL(data.url)
+              : null;
+          if (!url) {
+            res.writeHead(400);
+            res.end("Invalid or missing URL.");
+            return;
+          }
 
-        const workspaceFolders = vscode.workspace.workspaceFolders?.[0];
-        if (!workspaceFolders) {
-          res.writeHead(500);
-          res.end("No workspace folder found.");
-          return;
-        }
+          const workspaceFolders = vscode.workspace.workspaceFolders?.[0];
+          if (!workspaceFolders) {
+            res.writeHead(500);
+            res.end("No workspace folder found.");
+            return;
+          }
 
-        const settings = loadSettings();
+          const settings = loadSettings();
 
-        const contestId = getContestIdFromUrl(url);
-        const taskId = getTaskIdFromUrl(url);
-        if (!contestId || !taskId) {
-          res.writeHead(400);
-          res.end("Could not extract contest or task ID from URL.");
-          return;
-        }
+          const contestId = getContestIdFromUrl(url);
+          const taskId = getTaskIdFromUrl(url);
+          if (!contestId || !taskId) {
+            res.writeHead(400);
+            res.end("Could not extract contest or task ID from URL.");
+            return;
+          }
 
-        // 保存ディレクトリの作成
-        const dirRelative = settings.testCaseSaveDirName;
-        const saveDir = path.join(
-          workspaceFolders.uri.fsPath,
-          contestId,
-          taskId,
-          dirRelative
-        );
-        fs.mkdirSync(saveDir, { recursive: true });
+          // 保存ディレクトリの作成
+          const dirRelative = settings.testCaseSaveDirName;
+          const saveDir = path.join(
+            workspaceFolders.uri.fsPath,
+            contestId,
+            taskId,
+            dirRelative
+          );
+          fs.mkdirSync(saveDir, { recursive: true });
 
-        const existingCases = collectTestCases(saveDir);
+          const existingCases = collectTestCases(saveDir);
 
-        let savedCount = 0;
-        if (existingCases.length === 0 && tests.length > 0) {
-          const nextIndex = getNextTestIndex(saveDir);
-          tests.forEach((test, index) => {
-            const idx = nextIndex + index;
-            fs.writeFileSync(
-              path.join(saveDir, `${idx}.in`),
-              normalizeLineEndings(test?.input ?? ""),
-              "utf-8"
+          let savedCount = 0;
+          if (existingCases.length === 0 && tests.length > 0) {
+            const nextIndex = getNextTestIndex(saveDir);
+            tests.forEach((test, index) => {
+              const idx = nextIndex + index;
+              fs.writeFileSync(
+                path.join(saveDir, `${idx}.in`),
+                normalizeLineEndings(test?.input ?? ""),
+                "utf-8"
+              );
+              fs.writeFileSync(
+                path.join(saveDir, `${idx}.out`),
+                normalizeLineEndings(test?.output ?? ""),
+                "utf-8"
+              );
+            });
+            savedCount = tests.length;
+            vscode.window.showInformationMessage(
+              `Saved ${savedCount} test case(s) to ${saveDir}.`
             );
-            fs.writeFileSync(
-              path.join(saveDir, `${idx}.out`),
-              normalizeLineEndings(test?.output ?? ""),
-              "utf-8"
+          } else if (existingCases.length > 0) {
+            vscode.window.showInformationMessage(
+              `Tests already exist in ${saveDir}; skipping addition.`
             );
-          });
-          savedCount = tests.length;
-          vscode.window.showInformationMessage(
-            `Saved ${savedCount} test case(s) to ${saveDir}.`
-          );
-        } else if (existingCases.length > 0) {
-          vscode.window.showInformationMessage(
-            `Tests already exist in ${saveDir}; skipping addition.`
-          );
-        } else {
-          vscode.window.showInformationMessage(
-            `No new test cases to save for ${saveDir}.`
-          );
-        }
-        const collectedCases = collectTestCases(saveDir);
-
-        const problemRecord: ProblemRecord = {
-          name: data.name ?? "",
-          group: data.group ?? "",
-          url: data.url ?? "",
-          interactive: Boolean(data.interactive),
-          timeLimit:
-            typeof data.timeLimit === "number" ? data.timeLimit : 2000,
-          contestId,
-          taskId,
-          testsDir: dirRelative,
-          cases: collectedCases,
-        };
-        setCurrentProblem(problemRecord);
-        sendStateToWebview();
-
-        // テンプレートファイルのコピー
-        const templateRelativePath =
-          settings.templateFilePath || TEMPLATE_FILE_DEFAULT;
-        const templatePath = path.join(
-          workspaceFolders.uri.fsPath,
-          templateRelativePath
-        );
-
-        const solutionDir = path.join(
-          workspaceFolders.uri.fsPath,
-          contestId,
-          taskId
-        );
-        fs.mkdirSync(solutionDir, { recursive: true });
-        const solutionPath = path.join(solutionDir, "main.py");
-        if (!fs.existsSync(solutionPath)) {
-          if (fs.existsSync(templatePath)) {
-            fs.copyFileSync(templatePath, solutionPath);
           } else {
-            vscode.window.showWarningMessage(
-              `Template file not found at ${templatePath}. Skipping template copy.`
+            vscode.window.showInformationMessage(
+              `No new test cases to save for ${saveDir}.`
             );
           }
-        }
+          const collectedCases = collectTestCases(saveDir);
 
-        // ソリューションファイルをエディタで開く
-        if (fs.existsSync(solutionPath)) {
-          const codeUri = vscode.Uri.file(solutionPath);
-          openCodeFileAndSetCursor(codeUri);
-        }
+          const problemRecord: ProblemRecord = {
+            name: data.name ?? "",
+            group: data.group ?? "",
+            url: data.url ?? "",
+            interactive: Boolean(data.interactive),
+            timeLimit:
+              typeof data.timeLimit === "number" ? data.timeLimit : 2000,
+            contestId,
+            taskId,
+            testsDir: dirRelative,
+            cases: collectedCases,
+          };
+          setCurrentProblem(problemRecord);
+          sendStateToWebview();
 
-        res.writeHead(200);
-        res.end("ok");
-        return;
+          // テンプレートファイルのコピー
+          const templateRelativePath =
+            settings.templateFilePath || TEMPLATE_FILE_DEFAULT;
+          const templatePath = path.join(
+            workspaceFolders.uri.fsPath,
+            templateRelativePath
+          );
+
+          const solutionDir = path.join(
+            workspaceFolders.uri.fsPath,
+            contestId,
+            taskId
+          );
+          fs.mkdirSync(solutionDir, { recursive: true });
+          const solutionPath = path.join(solutionDir, "main.py");
+          if (!fs.existsSync(solutionPath)) {
+            if (fs.existsSync(templatePath)) {
+              fs.copyFileSync(templatePath, solutionPath);
+            } else {
+              vscode.window.showWarningMessage(
+                `Template file not found at ${templatePath}. Skipping template copy.`
+              );
+            }
+          }
+
+          // ソリューションファイルをエディタで開く
+          if (fs.existsSync(solutionPath)) {
+            const codeUri = vscode.Uri.file(solutionPath);
+            openCodeFileAndSetCursor(codeUri);
+          }
+
+          res.writeHead(200);
+          res.end("ok");
+          return;
+        }
+        res.writeHead(404);
+        res.end("Not Found");
+      } catch (e: any) {
+        res.writeHead(500);
+        res.end(String(e?.message ?? e));
       }
-      res.writeHead(404);
-      res.end("Not Found");
-    } catch (e: any) {
-      res.writeHead(500);
-      res.end(String(e?.message ?? e));
     }
-  });
+  );
 
   await new Promise<void>((resolve, reject) => {
     const onError = (err: Error) => {
@@ -250,11 +260,15 @@ function stopServer() {
 async function handleRunAllTests() {
   const problem = getCurrentProblem();
   if (!problem) {
-    vscode.window.showWarningMessage("No problem loaded for AC Companion Python.");
+    vscode.window.showWarningMessage(
+      "No problem loaded for AC Companion Python."
+    );
     return;
   }
   if (problem.interactive) {
-    vscode.window.showWarningMessage("Interactive problems are not supported yet.");
+    vscode.window.showWarningMessage(
+      "Interactive problems are not supported yet."
+    );
     return;
   }
 
@@ -265,7 +279,9 @@ async function handleRunAllTests() {
 
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!workspaceRoot) {
-    vscode.window.showErrorMessage("Workspace folder is required to run tests.");
+    vscode.window.showErrorMessage(
+      "Workspace folder is required to run tests."
+    );
     return;
   }
 
@@ -296,7 +312,9 @@ async function handleRunAllTests() {
       );
       results.push(result);
       outputChannel?.appendLine(
-        `#${result.index} ${result.status.toUpperCase()} (${result.durationMs}ms)`
+        `#${result.index} ${result.status.toUpperCase()} (${
+          result.durationMs
+        }ms)`
       );
       logResultToOutput(result);
       sendRunResult("all", result);
@@ -324,12 +342,16 @@ async function handleRunAllTests() {
 async function handleRunOneTest() {
   const problem = getCurrentProblem();
   if (!problem) {
-    vscode.window.showWarningMessage("No problem loaded for AC Companion Python.");
+    vscode.window.showWarningMessage(
+      "No problem loaded for AC Companion Python."
+    );
     return;
   }
 
   if (problem.interactive) {
-    vscode.window.showWarningMessage("Interactive problems are not supported yet.");
+    vscode.window.showWarningMessage(
+      "Interactive problems are not supported yet."
+    );
     return;
   }
 
@@ -340,7 +362,7 @@ async function handleRunOneTest() {
 
   const indexInput = await vscode.window.showInputBox({
     prompt: "Test index (#)",
-    validateInput: (value) => {
+    validateInput: (value: string) => {
       const parsed = Number(value);
       if (!value) {
         return "Test index is required.";
@@ -366,7 +388,9 @@ async function handleRunOneTest() {
 async function runSingleTestByIndex(index: number) {
   const problem = getCurrentProblem();
   if (!problem) {
-    vscode.window.showWarningMessage("No problem loaded for AC Companion Python.");
+    vscode.window.showWarningMessage(
+      "No problem loaded for AC Companion Python."
+    );
     return;
   }
 
@@ -376,7 +400,9 @@ async function runSingleTestByIndex(index: number) {
   }
 
   if (problem.interactive) {
-    vscode.window.showWarningMessage("Interactive problems are not supported yet.");
+    vscode.window.showWarningMessage(
+      "Interactive problems are not supported yet."
+    );
     return;
   }
 
@@ -393,7 +419,9 @@ async function runSingleTestByIndex(index: number) {
 
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
   if (!workspaceRoot) {
-    vscode.window.showErrorMessage("Workspace folder is required to run tests.");
+    vscode.window.showErrorMessage(
+      "Workspace folder is required to run tests."
+    );
     return;
   }
 
@@ -437,7 +465,9 @@ async function runSingleTestByIndex(index: number) {
 function readBody(req: http.IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on("data", (d) => chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d)));
+    req.on("data", (d: Buffer | string) =>
+      chunks.push(Buffer.isBuffer(d) ? d : Buffer.from(d))
+    );
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });
@@ -564,7 +594,11 @@ function sendRunResult(scope: "one" | "all", result: RunResult) {
 /**
  * 全体の実行結果を集計し、完了イベントを通知します。
  */
-function sendRunComplete(scope: RunScope, results: RunResult[], durationMs: number) {
+function sendRunComplete(
+  scope: RunScope,
+  results: RunResult[],
+  durationMs: number
+) {
   postToWebview({
     type: "run/complete",
     scope,
@@ -582,7 +616,11 @@ function sendNotice(level: "info" | "warn" | "error", message: string) {
 async function switchInterpreter(interpreter: Interpreter) {
   try {
     const config = vscode.workspace.getConfiguration("ac-companion-python");
-    await config.update("interpreter", interpreter, vscode.ConfigurationTarget.Workspace);
+    await config.update(
+      "interpreter",
+      interpreter,
+      vscode.ConfigurationTarget.Workspace
+    );
     const label = interpreter === "cpython" ? "CPython" : "PyPy";
     sendNotice("info", `${label} interpreter selected.`);
     sendStateToWebview();
@@ -610,10 +648,7 @@ function handleWebviewMessage(message: any) {
       }
       break;
     case "ui/switchInterpreter":
-      if (
-        message.interpreter === "cpython" ||
-        message.interpreter === "pypy"
-      ) {
+      if (message.interpreter === "cpython" || message.interpreter === "pypy") {
         void switchInterpreter(message.interpreter);
       }
       break;

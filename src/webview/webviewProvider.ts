@@ -21,6 +21,17 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>AC Companion Python</title>
+        <link
+          rel="stylesheet"
+          href="${webviewView.webview.asWebviewUri(
+            vscode.Uri.joinPath(
+              this.extensionUri,
+              "media",
+              "frontend",
+              "main.css"
+            )
+          )}"
+        />
       </head>
       <body>
         <div id="root"></div>

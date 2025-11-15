@@ -13,5 +13,6 @@
     "lib": ["DOM", "ESNext"],
     "types": ["vscode-webview"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": []
 }

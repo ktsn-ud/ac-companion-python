@@ -6,7 +6,10 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "esbuild src/main.tsx --bundle --outfile=../../../media/frontend/main.js --format=iife --sourcemap --define:process.env.NODE_ENV=\\\"production\\\"",
-    "watch": "esbuild src/main.tsx --bundle --outfile=../../../media/frontend/main.js --format=iife --sourcemap --watch"
+    "watch": "esbuild src/main.tsx --bundle --outfile=../../../media/frontend/main.js --format=iife --sourcemap --watch",
+    "build:css": "tailwindcss -i ./styles/tailwind.css -o ../../../media/frontend/main.css --minify",
+    "watch:css": "tailwindcss -i ./styles/tailwind.css -o ../../../media/frontend/main.css --watch",
+    "dev": "sh -c \"pnpm run watch:css & pnpm run watch\""
   },
   "keywords": [],
   "author": "",
